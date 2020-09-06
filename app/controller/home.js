@@ -10,6 +10,7 @@ const NETWORK = os.networkInterfaces();
 
 let globalSerialPort = null;
 let globalHasOpenPort = null;
+var timePhotoHandle = null
 // 关于命令的数据
 const commandCodeObj = {
   on: 'AA7511020000CC', // 开机命令
@@ -199,6 +200,45 @@ class HomeController extends Controller {
       status: 1,
     };
     ctx.status = 200;
+  }
+  // 设置定时拍照或者关闭的数据
+  async writePortIsIntertime() {
+    const { ctx, logger } = this;
+    const body = ctx.request.body;
+    const type = body.send;
+    const timeOut = body.timeOut; // 定时拍照的时间
+    // 定义全局定时拍照的时间句柄
+    
+    let str = ''
+    // 如果是定时拍照那么就要显示这个
+    if(type === 'photo') {
+       str = commandCodeObj['photo' + ''];
+       // 这个时候需要判断时间
+       // 如果之前你已经设定过了这个定时器 那么就需要把这个定时器干掉 防止会吃爆内存
+       if(timePhotoHandle) {
+         clearInterval(timePhotoHandle)
+       }
+       timePhotoHandle = setInterval(async () => {
+        const result = await globalSerialPort.write(str, 'hex');
+      }, timeOut)
+       
+      ctx.body = {
+        status: 1,
+      };
+      ctx.status = 200;
+    }else { // noPhoto
+      // 表示为取消定时拍照
+      if(timePhotoHandle) {
+        clearInterval(timePhotoHandle)
+        ctx.body = {
+          status: 1,
+        };
+        ctx.status = 200;
+      }
+    }
+    
+
+    
   }
   // 获取LED灯的状态
   async setStatus() {

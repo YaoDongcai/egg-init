@@ -18,4 +18,6 @@ module.exports = app => {
   router.post('/respberry/writeMount', controller.home.writeMount);
   // 打开串口
   router.post('/respberry/openPortByName', controller.home.openPortByName);
+  // 定时拍照打开或者关闭
+  router.post('/respberry/writePortIsIntertime', controller.home.writePortIsIntertime)
 };
