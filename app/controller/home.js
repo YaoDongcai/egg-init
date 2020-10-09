@@ -10,7 +10,8 @@ const NETWORK = os.networkInterfaces();
 
 let globalSerialPort = null;
 let globalHasOpenPort = null;
-var timePhotoHandle = null
+var timePhotoHandle = null;
+var hasMakeDir = false; // 默认是否建立文件夹了
 // 关于命令的数据
 const commandCodeObj = {
   on: 'AA7511020000CC', // 开机命令
@@ -188,18 +189,77 @@ class HomeController extends Controller {
     const body = ctx.request.body;
     const type = body.send;
     logger.info('type', type);
+    
     const str = commandCodeObj[type + ''];
     logger.info('str', str);
     // 如果是2进制 那么数据又会是什么样子呢?
     logger.info('hex data', str.toString('hex'))
     const result = await globalSerialPort.write(str, 'hex');
-    // const result = await globalSerialPort.write(str + '', 'hex');
-    // const result = await globalSerialPort.write(str + '');
-    console.log('result', result);
-    ctx.body = {
-      status: 1,
-    };
-    ctx.status = 200;
+
+    if(type !== 'downloadStart' && type !=='downloadEnd') {
+      ctx.body = {
+        status: 1
+      };
+      ctx.status = 200;
+    }
+    // 如果是downloadStart 表示当前的数据是下载 那么我们需要
+    // 第一步 是将当前的存储卡挂载到当前的数据里面
+    // 第二步骤就是监听当前是否含有存储卡的数据
+    // 第三步 如果不在 那么就不需要重新挂载
+    if(type === 'downloadStart') {
+      // 表示为开始下载
+      // 需要延迟几秒钟然后再给这个数据来挂载 因为有一些延迟
+      // 延迟1秒钟
+      setTimeout(() => {
+        // 开始监听事件了 开始挂载了
+        // 新建这个目录 这个目录每次重启后都会消除掉 所以需要判断是否为重启
+        
+        if(hasMakeDir) {
+          // 表示这个是已经重启过了 那么就不需要mkdir 一个新的目录了
+          child.exec('sudo mount -o rw /dev/sda1 /run/user/USB_FLASH/', function (err, sto) {
+            logger.info(err, sto);
+            logger.info('挂载成功');
+          });
+        } else {
+          child.exec('sudo mkdir /run/user/USB_FLASH', function (err, sto) {
+            // 这个时候表示建立成功了
+            hasMakeDir = true;
+            logger.info('新建目录成功');
+            child.exec('sudo mount -o rw /dev/sda1 /run/user/USB_FLASH/', function (err, sto) {
+              logger.info(err, sto);
+              logger.info('挂载成功');
+            });
+          });
+        }
+      }, 1000);
+
+      ctx.body = {
+        status: 1
+      };
+      ctx.status = 200;
+    }
+
+    if(type === 'downloadEnd') {
+      // 需要卸载sdk卡 不然的话 原先就无法再次挂载上去 因为sd的分区变了
+      child.exec('sudo umount /dev/sda1', function(err, sto) {
+        let message = '发送成功'
+        // if(err) {
+        //   // 表示是卸载不成功的
+        //   message = '发送失败，请检查是否关闭了ftp访问的目录窗口，然后重新点击下载结束'
+        // }
+        // ctx.body = {
+        //   status: 2,
+        //   message: message
+        // };
+        // ctx.status = 200;
+      })
+
+      ctx.body = {
+          status: 2,
+          message: message
+        };
+        ctx.status = 200;
+    }
   }
   // 设置定时拍照或者关闭的数据
   async writePortIsIntertime() {
