@@ -213,25 +213,42 @@ class HomeController extends Controller {
       setTimeout(() => {
         // 开始监听事件了 开始挂载了
         // 新建这个目录 这个目录每次重启后都会消除掉 所以需要判断是否为重启
-        
-        if(hasMakeDir) {
-          // 表示这个是已经重启过了 那么就不需要mkdir 一个新的目录了
-          child.exec('sudo mount -o rw /dev/sda1 /run/user/USB_FLASH/', function (err, sto) {
-            logger.info(err, sto);
-            logger.info('挂载成功');
-          });
-        } else {
-          child.exec('sudo mkdir /run/user/USB_FLASH', function (err, sto) {
-            // 这个时候表示建立成功了
-            hasMakeDir = true;
-            logger.info('新建目录成功');
-            child.exec('sudo mount -o rw /dev/sda1 /run/user/USB_FLASH/', function (err, sto) {
-              logger.info(err, sto);
-              logger.info('挂载成功');
-            });
-          });
-        }
-      }, 1000);
+        // 
+        child.exec(`sudo ls /dev/sd*`, function(err, sto) {
+          logger.info('ls /dev/sd*', err, sto);
+          logger.info('开始执行了ls的命令')
+        })
+        child.exec(`sudo mount -o rw /dev/sda1 /mnt/USB_FLASH/raspberry_document`, function (err, sto) {
+          logger.info(err, sto);
+          logger.info('已经过了4秒开始执行的挂载成功');
+        });
+        // child.exec('rm -rf /mnt/USB_FLASH/*', function(err2, sto2) {
+        //   logger.info('err2', err2, 'sto2', sto2)
+        //   child.exec('sudo ls /dev/sd*', function(err, sto) {
+        //     logger.info('err', err, 'sto', sto)
+            
+        //   })
+        // })
+        // child.exec('sudo mkdir -m 777 /run/user/USB_FLASH', function (err, sto) {
+        //   // 这个时候表示建立成功了
+        //   hasMakeDir = true;
+        //   logger.info('新建目录成功');
+        //   // 新建目录后 需要清空一下这个目录 然后再挂载
+        // });
+        // if(hasMakeDir) {
+        //   // 表示这个是已经重启过了 那么就不需要mkdir 一个新的目录了
+        //   child.exec('sudo ls /dev/sd*', function(err, sto) {
+        //     logger.info('err', err, 'sto', sto)
+        //     child.exec(`sudo mount -o rw /dev/sda1 /run/user/USB_FLASH/`, function (err, sto) {
+        //       logger.info(err, sto);
+        //       logger.info('挂载成功');
+        //     });
+        //   })
+          
+        // } else {
+          
+        // }
+      }, 5000);
 
       ctx.body = {
         status: 1
@@ -240,19 +257,17 @@ class HomeController extends Controller {
     }
 
     if(type === 'downloadEnd') {
-      // 需要卸载sdk卡 不然的话 原先就无法再次挂载上去 因为sd的分区变了
-      child.exec('sudo umount /dev/sda1', function(err, sto) {
-        let message = '发送成功'
-        // if(err) {
-        //   // 表示是卸载不成功的
-        //   message = '发送失败，请检查是否关闭了ftp访问的目录窗口，然后重新点击下载结束'
-        // }
-        // ctx.body = {
-        //   status: 2,
-        //   message: message
-        // };
-        // ctx.status = 200;
+      // 卸载这个分区的dev 即可
+      child.exec(`sudo umount /dev/sda1`, function(err, sto) {
+        let message = 'umount成功'
       })
+      // child.exec('sudo ls /dev/sd*', function(err, sto) {
+      //   logger.info('err', err, 'sto', sto)
+      //   child.exec(`sudo umount ${sto}`, function(err, sto) {
+      //     let message = 'umount成功'
+      //   })
+      // })
+      
 
       ctx.body = {
           status: 2,
