@@ -7,23 +7,55 @@ const os = require('os');
 const fs = require('fs');
 const FILE_URL = 'your file url';
 const NETWORK = os.networkInterfaces();
-
+const rpio = require('rpio'); // 控制GPIO的脚口子
 let globalSerialPort = null;
 let globalHasOpenPort = null;
 var timePhotoHandle = null;
 var hasMakeDir = false; // 默认是否建立文件夹了
-// 关于命令的数据
+// 关于命令的数据 这个命令是之前的串口发出的
+// const commandCodeObj = {
+//   on: 'AA7511020000CC', // 开机命令
+//   off: 'AA7522020000FF', // 关机命令
+//   photo: 'AA7533020000EE', // 手动拍照
+//   menuOn: 'AA7577020000AA', // 菜单打开
+//   menuOff: 'AA758802000055', // 菜单关闭
+//   menuUp: 'AA759902000044', // 菜单上翻
+//   menuDown: 'AA75AA02000077', // 菜单下翻
+//   menuLeft: 'AA75BB02000066', // 菜单左翻
+//   menuRight: 'AA75CC02000011', // 菜单右翻
+//   menuOk: 'AA75DD02000000', // 菜单确定
+//   focusSub: 'AA753E020000E3', // 变焦-
+//   focusAdd: 'AA754E02000093', // 变焦+
+//   downloadStart: 'AA751E020100C2', // 数据下载开始
+//   downloadEnd: 'AA751E020000C3', // 数据下载结束
+//   audioStart: 'AA755E02010082', // 录像开始
+//   audioEnd: 'AA755E02000083', // 录像结束
+//   autoModel: 'AA755502010089', // auto自动模式
+//   avModel: 'AA75550202008A', // av模式
+//   hdrModel: 'AA75550203008B', // HDR 模式
+//   personImageModel: 'AA75550204008C', // 人像
+//   c1Model: 'AA75550205008D',
+//   mModel: 'AA75550206008E',
+//   tvModel: 'AA75550207008F',
+//   audioModel: 'AA755502080080',
+//   c2Model: 'AA755502090081',
+//   pModel: 'AA7555020a0082',
+//   mixinModel: 'AA7555020b0083',
+// };
+// 以下是第二个版本的命令
 const commandCodeObj = {
-  on: 'AA7511020000CC', // 开机命令
-  off: 'AA7522020000FF', // 关机命令
-  photo: 'AA7533020000EE', // 手动拍照
-  menuOn: 'AA7577020000AA', // 菜单打开
-  menuOff: 'AA758802000055', // 菜单关闭
-  menuUp: 'AA759902000044', // 菜单上翻
-  menuDown: 'AA75AA02000077', // 菜单下翻
-  menuLeft: 'AA75BB02000066', // 菜单左翻
-  menuRight: 'AA75CC02000011', // 菜单右翻
-  menuOk: 'AA75DD02000000', // 菜单确定
+  on: 24, // 开机命令
+  off: 24, // 关机命令
+  photo: 25, // 手动拍照
+  menuOn: 7, // 菜单打开
+  menuOff: 7, // 菜单关闭
+  menuUp: 2, // 菜单上翻
+  menuDown: 22, // 菜单下翻
+  menuLeft: 21, // 菜单左翻
+  menuRight: 0, // 菜单右翻
+  menuOk: 3, // 菜单确定
+  SDToggle: 26,// SD卡切换
+  SDOn: 6, // USB的正极线切换
   focusSub: 'AA753E020000E3', // 变焦-
   focusAdd: 'AA754E02000093', // 变焦+
   downloadStart: 'AA751E020100C2', // 数据下载开始
@@ -42,11 +74,35 @@ const commandCodeObj = {
   pModel: 'AA7555020a0082',
   mixinModel: 'AA7555020b0083',
 };
-
 class HomeController extends Controller {
   async index() {
     const { ctx } = this;
     await ctx.render('index.html');
+  }
+  // 第二版的数据获取 GPIO 的控制
+  async GPIOController () {
+    // 获取前端那边的命令
+    const { ctx, logger } = this;
+    const body = ctx.request.body;
+    const type = body.send;
+    logger.info('type', type);
+    
+    const str = commandCodeObj[type + ''];
+    logger.info('str', str);
+    // 如果是2进制 那么数据又会是什么样子呢?
+    // 先要打开这个口子
+    rpio.open(str, rpio.OUTPUT, rpio.LOW)// 先初始化为低电平
+    // 开始设置100毫秒为低电平
+    rpio.write(str, rpio.HIGH)
+    // 设置为100ms
+    rpio.msleep(100)
+    rpio.write(str, rpio.LOW)
+    if(type !== 'downloadStart' && type !=='downloadEnd') {
+      ctx.body = {
+        status: 1
+      };
+      ctx.status = 200;
+    }
   }
   // 获取本地IP地址
   async getCurrentIP() {
@@ -214,14 +270,14 @@ class HomeController extends Controller {
         // 开始监听事件了 开始挂载了
         // 新建这个目录 这个目录每次重启后都会消除掉 所以需要判断是否为重启
         // 
-        child.exec(`sudo ls /dev/sd*`, function(err, sto) {
-          logger.info('ls /dev/sd*', err, sto);
-          logger.info('开始执行了ls的命令')
-        })
-        child.exec(`sudo mount -o rw /dev/sda1 /mnt/USB_FLASH/raspberry_document`, function (err, sto) {
-          logger.info(err, sto);
-          logger.info('已经过了4秒开始执行的挂载成功');
-        });
+        // child.exec(`sudo ls /dev/sd*`, function(err, sto) {
+        //   logger.info('ls /dev/sd*', err, sto);
+        //   logger.info('开始执行了ls的命令')
+        // })
+        // child.exec(`sudo mount -o rw /dev/sda1 /mnt/USB_FLASH/raspberry_document`, function (err, sto) {
+        //   logger.info(err, sto);
+        //   logger.info('已经过了4秒开始执行的挂载成功');
+        // });
         // child.exec('rm -rf /mnt/USB_FLASH/*', function(err2, sto2) {
         //   logger.info('err2', err2, 'sto2', sto2)
         //   child.exec('sudo ls /dev/sd*', function(err, sto) {
@@ -258,9 +314,9 @@ class HomeController extends Controller {
 
     if(type === 'downloadEnd') {
       // 卸载这个分区的dev 即可
-      child.exec(`sudo umount /dev/sda1`, function(err, sto) {
-        let message = 'umount成功'
-      })
+      // child.exec(`sudo umount /dev/sda1`, function(err, sto) {
+      //   let message = 'umount成功'
+      // })
       // child.exec('sudo ls /dev/sd*', function(err, sto) {
       //   logger.info('err', err, 'sto', sto)
       //   child.exec(`sudo umount ${sto}`, function(err, sto) {

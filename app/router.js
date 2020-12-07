@@ -10,6 +10,7 @@ module.exports = app => {
   // 获取当前的LED灯的状态
   router.get('/respberry/P36Status', controller.home.status);
   router.get('/respberry/getIP', controller.home.getCurrentIP);
+  router.post('/respberry/GPIOController', controller.home.GPIOController)
   // 获取当前的串口接口列表
   router.get('/respberry/serialPortList', controller.home.getSerialPortList);
   // 发送数据到串口
