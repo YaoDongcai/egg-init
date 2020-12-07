@@ -1,13 +1,13 @@
-'use strict';
+"use strict";
 
-const Controller = require('egg').Controller;
-const SerialPort = require('serialport');
-const child = require('child_process');
-const os = require('os');
-const fs = require('fs');
-const FILE_URL = 'your file url';
+const Controller = require("egg").Controller;
+const SerialPort = require("serialport");
+const child = require("child_process");
+const os = require("os");
+const fs = require("fs");
+const FILE_URL = "your file url";
 const NETWORK = os.networkInterfaces();
-const rpio = require('rpio'); // 控制GPIO的脚口子
+const rpio = require("rpio"); // 控制GPIO的脚口子
 let globalSerialPort = null;
 let globalHasOpenPort = null;
 var timePhotoHandle = null;
@@ -54,52 +54,96 @@ const commandCodeObj = {
   menuLeft: 21, // 菜单左翻
   menuRight: 0, // 菜单右翻
   menuOk: 3, // 菜单确定
-  SDToggle: 26,// SD卡切换
+  SDToggle: 26, // SD卡切换
   SDOn: 6, // USB的正极线切换
-  focusSub: 'AA753E020000E3', // 变焦-
-  focusAdd: 'AA754E02000093', // 变焦+
-  downloadStart: 'AA751E020100C2', // 数据下载开始
-  downloadEnd: 'AA751E020000C3', // 数据下载结束
-  audioStart: 'AA755E02010082', // 录像开始
-  audioEnd: 'AA755E02000083', // 录像结束
-  autoModel: 'AA755502010089', // auto自动模式
-  avModel: 'AA75550202008A', // av模式
-  hdrModel: 'AA75550203008B', // HDR 模式
-  personImageModel: 'AA75550204008C', // 人像
-  c1Model: 'AA75550205008D',
-  mModel: 'AA75550206008E',
-  tvModel: 'AA75550207008F',
-  audioModel: 'AA755502080080',
-  c2Model: 'AA755502090081',
-  pModel: 'AA7555020a0082',
-  mixinModel: 'AA7555020b0083',
+  focusSub: "AA753E020000E3", // 变焦-
+  focusAdd: "AA754E02000093", // 变焦+
+  downloadStart: "AA751E020100C2", // 数据下载开始
+  downloadEnd: "AA751E020000C3", // 数据下载结束
+  audioStart: "AA755E02010082", // 录像开始
+  audioEnd: "AA755E02000083", // 录像结束
+  autoModel: "AA755502010089", // auto自动模式
+  avModel: "AA75550202008A", // av模式
+  hdrModel: "AA75550203008B", // HDR 模式
+  personImageModel: "AA75550204008C", // 人像
+  c1Model: "AA75550205008D",
+  mModel: "AA75550206008E",
+  tvModel: "AA75550207008F",
+  audioModel: "AA755502080080",
+  c2Model: "AA755502090081",
+  pModel: "AA7555020a0082",
+  mixinModel: "AA7555020b0083",
 };
 class HomeController extends Controller {
   async index() {
     const { ctx } = this;
-    await ctx.render('index.html');
+    await ctx.render("index.html");
+  }
+
+  async GPIOControllerIntertime() {
+    const { ctx, logger } = this;
+    const body = ctx.request.body;
+    const type = body.send;
+    const timeOut = body.timeOut; // 定时拍照的时间
+    // 定义全局定时拍照的时间句柄
+
+    let str = "";
+    // 如果是定时拍照那么就要显示这个
+    if (type === "photo") {
+      str = commandCodeObj["photo" + ""];
+      // 这个时候需要判断时间
+      // 如果之前你已经设定过了这个定时器 那么就需要把这个定时器干掉 防止会吃爆内存
+      if (timePhotoHandle) {
+        clearInterval(timePhotoHandle);
+      }
+      rpio.open(str, rpio.OUTPUT, rpio.LOW); // 先初始化为低电平
+      timePhotoHandle = setInterval(async () => {
+        // 开始设置定时器的时间来设定
+
+        // 开始设置100毫秒为低电平
+        rpio.write(str, rpio.HIGH);
+        // 设置为100ms
+        rpio.msleep(100);
+        rpio.write(str, rpio.LOW);
+      }, timeOut);
+
+      ctx.body = {
+        status: 1,
+      };
+      ctx.status = 200;
+    } else {
+      // noPhoto
+      // 表示为取消定时拍照
+      if (timePhotoHandle) {
+        clearInterval(timePhotoHandle);
+        ctx.body = {
+          status: 1,
+        };
+        ctx.status = 200;
+      }
+    }
   }
   // 第二版的数据获取 GPIO 的控制
-  async GPIOController () {
+  async GPIOController() {
     // 获取前端那边的命令
     const { ctx, logger } = this;
     const body = ctx.request.body;
     const type = body.send;
-    logger.info('type', type);
-    
-    const str = commandCodeObj[type + ''];
-    logger.info('str', str);
+    logger.info("type", type);
+
+    const str = commandCodeObj[type + ""];
+    logger.info("str", str);
     // 如果是2进制 那么数据又会是什么样子呢?
     // 先要打开这个口子
-    rpio.open(str, rpio.OUTPUT, rpio.LOW)// 先初始化为低电平
+    rpio.open(str, rpio.OUTPUT, rpio.LOW); // 先初始化为低电平
     // 开始设置100毫秒为低电平
-    rpio.write(str, rpio.HIGH)
+    rpio.write(str, rpio.HIGH);
     // 设置为100ms
-    rpio.msleep(100)
-    rpio.write(str, rpio.LOW)
-    if(type !== 'downloadStart' && type !=='downloadEnd') {
+    rpio.msleep(100);
+    rpio.write(str, rpio.LOW);
+    if (type !== "downloadStart" && type !== "downloadEnd") {
       ctx.body = {
-        status: 1
+        status: 1,
       };
       ctx.status = 200;
     }
@@ -108,13 +152,10 @@ class HomeController extends Controller {
   async getCurrentIP() {
     const { ctx, logger } = this;
     let currentItem = null;
-    Object.keys(NETWORK).forEach(v => {
+    Object.keys(NETWORK).forEach((v) => {
       for (let i = 0; i < NETWORK[v].length; i++) {
         const item = NETWORK[v][i];
-        if (
-          !item.internal &&
-          item.family.toLocaleLowerCase() === 'ipv4'
-        ) {
+        if (!item.internal && item.family.toLocaleLowerCase() === "ipv4") {
           // CURRENT_IP = item.address;
           // console.log('currentItem', item);
           currentItem = item;
@@ -122,7 +163,7 @@ class HomeController extends Controller {
       }
     });
     // 获取这个current_ip 的数据
-    logger.info('currentItem', currentItem);
+    logger.info("currentItem", currentItem);
     ctx.body = {
       list: currentItem,
       status: 1,
@@ -136,7 +177,7 @@ class HomeController extends Controller {
     const { ctx, logger } = this;
     // 获取list 列表
     const ports = await SerialPort.list();
-    logger.info('getSerialPortList', ports);
+    logger.info("getSerialPortList", ports);
     ctx.body = {
       list: ports,
       status: 1,
@@ -155,16 +196,16 @@ class HomeController extends Controller {
   async openPortByName() {
     const { ctx, logger } = this;
     const body = ctx.request.body; // { port: port}
-    logger.info('body', body);
+    logger.info("body", body);
     const portName = body.portName;
-    logger.info('portName', portName);
+    logger.info("portName", portName);
     // 设置属性
     const serialPort = new SerialPort(
       portName,
       {
         baudRate: 9600,
         dataBits: 8,
-        parity: 'none',
+        parity: "none",
         stopBits: 1,
         flowControl: false,
         autoOpen: false,
@@ -190,8 +231,8 @@ class HomeController extends Controller {
         };
         ctx.status = 200;
         // 开始接受数据
-        serialPort.on('data', function (data) {
-          logger.info('on data', data.toString('hex'));
+        serialPort.on("data", function (data) {
+          logger.info("on data", data.toString("hex"));
         });
       }
       // function(error) {
@@ -206,7 +247,7 @@ class HomeController extends Controller {
       //     });
       //   }
       // }
-      console.log('result', result);
+      console.log("result", result);
     }
     // 打开这个端口前 最好先close一下 这样就不会让它关闭了
 
@@ -223,19 +264,19 @@ class HomeController extends Controller {
   async writeMount() {
     const { ctx, logger } = this;
     const body = ctx.request.body;
-    if (body.type === 'mount') {
-      child.exec('cd /run/user', function (err, sto) {
-        logger.info('获取文件夹');
+    if (body.type === "mount") {
+      child.exec("cd /run/user", function (err, sto) {
+        logger.info("获取文件夹");
         logger.info(err, sto);
-        logger.info('挂载成功');
-        child.exec('ls', function (err2, sto2) {
-          logger.info('err2', err2, sto2);
+        logger.info("挂载成功");
+        child.exec("ls", function (err2, sto2) {
+          logger.info("err2", err2, sto2);
         });
       });
     } else {
-      child.exec('umount /mnt/udisk', function (err, sto) {
+      child.exec("umount /mnt/udisk", function (err, sto) {
         logger.info(err, sto);
-        logger.info('卸载成功');
+        logger.info("卸载成功");
       });
     }
   }
@@ -244,17 +285,17 @@ class HomeController extends Controller {
     const { ctx, logger } = this;
     const body = ctx.request.body;
     const type = body.send;
-    logger.info('type', type);
-    
-    const str = commandCodeObj[type + ''];
-    logger.info('str', str);
-    // 如果是2进制 那么数据又会是什么样子呢?
-    logger.info('hex data', str.toString('hex'))
-    const result = await globalSerialPort.write(str, 'hex');
+    logger.info("type", type);
 
-    if(type !== 'downloadStart' && type !=='downloadEnd') {
+    const str = commandCodeObj[type + ""];
+    logger.info("str", str);
+    // 如果是2进制 那么数据又会是什么样子呢?
+    logger.info("hex data", str.toString("hex"));
+    const result = await globalSerialPort.write(str, "hex");
+
+    if (type !== "downloadStart" && type !== "downloadEnd") {
       ctx.body = {
-        status: 1
+        status: 1,
       };
       ctx.status = 200;
     }
@@ -262,14 +303,14 @@ class HomeController extends Controller {
     // 第一步 是将当前的存储卡挂载到当前的数据里面
     // 第二步骤就是监听当前是否含有存储卡的数据
     // 第三步 如果不在 那么就不需要重新挂载
-    if(type === 'downloadStart') {
+    if (type === "downloadStart") {
       // 表示为开始下载
       // 需要延迟几秒钟然后再给这个数据来挂载 因为有一些延迟
       // 延迟1秒钟
       setTimeout(() => {
         // 开始监听事件了 开始挂载了
         // 新建这个目录 这个目录每次重启后都会消除掉 所以需要判断是否为重启
-        // 
+        //
         // child.exec(`sudo ls /dev/sd*`, function(err, sto) {
         //   logger.info('ls /dev/sd*', err, sto);
         //   logger.info('开始执行了ls的命令')
@@ -282,7 +323,6 @@ class HomeController extends Controller {
         //   logger.info('err2', err2, 'sto2', sto2)
         //   child.exec('sudo ls /dev/sd*', function(err, sto) {
         //     logger.info('err', err, 'sto', sto)
-            
         //   })
         // })
         // child.exec('sudo mkdir -m 777 /run/user/USB_FLASH', function (err, sto) {
@@ -300,19 +340,17 @@ class HomeController extends Controller {
         //       logger.info('挂载成功');
         //     });
         //   })
-          
         // } else {
-          
         // }
       }, 5000);
 
       ctx.body = {
-        status: 1
+        status: 1,
       };
       ctx.status = 200;
     }
 
-    if(type === 'downloadEnd') {
+    if (type === "downloadEnd") {
       // 卸载这个分区的dev 即可
       // child.exec(`sudo umount /dev/sda1`, function(err, sto) {
       //   let message = 'umount成功'
@@ -323,13 +361,12 @@ class HomeController extends Controller {
       //     let message = 'umount成功'
       //   })
       // })
-      
 
       ctx.body = {
-          status: 2,
-          message: message
-        };
-        ctx.status = 200;
+        status: 2,
+        message: message,
+      };
+      ctx.status = 200;
     }
   }
   // 设置定时拍照或者关闭的数据
@@ -339,43 +376,41 @@ class HomeController extends Controller {
     const type = body.send;
     const timeOut = body.timeOut; // 定时拍照的时间
     // 定义全局定时拍照的时间句柄
-    
-    let str = ''
+
+    let str = "";
     // 如果是定时拍照那么就要显示这个
-    if(type === 'photo') {
-       str = commandCodeObj['photo' + ''];
-       // 这个时候需要判断时间
-       // 如果之前你已经设定过了这个定时器 那么就需要把这个定时器干掉 防止会吃爆内存
-       if(timePhotoHandle) {
-         clearInterval(timePhotoHandle)
-       }
-       timePhotoHandle = setInterval(async () => {
-        const result = await globalSerialPort.write(str, 'hex');
-      }, timeOut)
-       
+    if (type === "photo") {
+      str = commandCodeObj["photo" + ""];
+      // 这个时候需要判断时间
+      // 如果之前你已经设定过了这个定时器 那么就需要把这个定时器干掉 防止会吃爆内存
+      if (timePhotoHandle) {
+        clearInterval(timePhotoHandle);
+      }
+      timePhotoHandle = setInterval(async () => {
+        const result = await globalSerialPort.write(str, "hex");
+      }, timeOut);
+
       ctx.body = {
         status: 1,
       };
       ctx.status = 200;
-    }else { // noPhoto
+    } else {
+      // noPhoto
       // 表示为取消定时拍照
-      if(timePhotoHandle) {
-        clearInterval(timePhotoHandle)
+      if (timePhotoHandle) {
+        clearInterval(timePhotoHandle);
         ctx.body = {
           status: 1,
         };
         ctx.status = 200;
       }
     }
-    
-
-    
   }
   // 获取LED灯的状态
   async setStatus() {
     const { ctx, logger } = this;
     const body = ctx.request.body;
-    logger.info('body', body);
+    logger.info("body", body);
     // 设置LED灯的状态为body里面的status的值
     let status = 0;
     if (body.status === 1) {
