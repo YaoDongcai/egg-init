@@ -44,18 +44,21 @@ var hasMakeDir = false; // 默认是否建立文件夹了
 // };
 // 以下是第二个版本的命令
 const commandCodeObj = {
-  on: 24, // 开机命令
-  off: 24, // 关机命令
-  photo: 25, // 手动拍照
+  on: 35, // 开机命令
+  off: 35, // 关机命令
+  photo: 37, // 手动拍照
   menuOn: 7, // 菜单打开
   menuOff: 7, // 菜单关闭
-  menuUp: 2, // 菜单上翻
-  menuDown: 22, // 菜单下翻
-  menuLeft: 21, // 菜单左翻
-  menuRight: 0, // 菜单右翻
-  menuOk: 3, // 菜单确定
-  SDToggle: 26, // SD卡切换
-  SDOn: 6, // USB的正极线切换
+  menuUp: 13, // 菜单上翻
+  menuDown: 31, // 菜单下翻
+  menuLeft: 29, // 菜单左翻
+  menuRight: 11, // 菜单右翻
+  menuOk: 15, // 菜单确定
+  SDToggle: 32, // 保持之前的程序一致
+  SDToggleOn: 32, // SD卡切换
+  SDToggleOff: 32, // SD卡关闭切换
+  SDOn: 22, // USB的正极线切换
+  SDOff: 22, // 关闭USB的正极线切换
   focusSub: "AA753E020000E3", // 变焦-
   focusAdd: "AA754E02000093", // 变焦+
   downloadStart: "AA751E020100C2", // 数据下载开始
@@ -79,7 +82,85 @@ class HomeController extends Controller {
     const { ctx } = this;
     await ctx.render("index.html");
   }
+  async initGPIOController() {
+    const { ctx, logger } = this;
+    // 开始初始化以下需要用到的GPIO口
+    const GPIOList = [35, 37,7, 13, 31, 29, 11, 15, 32, 22]
+    // 初始化后直接赋予值
+    for(let i=0; i<GPIOList.length; ++i) {
+      rpio.open(GPIOList[i], rpio.OUTPUT, rpio.LOW); // 先初始化为低电平
+      logger.info('初始化GPIO引脚', GPIOList[i])
+      rpio.write(GPIOList[i], 0);
+    }
+    ctx.body = {
+      status: 1,
+    };
+    ctx.status = 200;
 
+  }
+  // 这个接口是为了永久输出电压的 为了保持电压的输出不变
+  async GPIOControllerByGPIO() {
+    const { ctx, logger } = this;
+    const body = ctx.request.body;
+    const type = body.send;
+    let str = commandCodeObj[type + ""];
+    // 对于SD卡切换或者USB通电 都需要保存永久的电压或者电平的
+    // rpio.open(str, rpio.OUTPUT, rpio.LOW); // 先初始化为低电平
+    // 永久为高电平
+    if((type + '').includes('On')) {
+      // 表示这个是为开启状态 那么就是on
+      rpio.write(str, 1);
+      logger.info('包含为on 为高电平')
+    }else {
+      rpio.write(str, 0);
+      logger.info('包含为off 为低电平')
+    }
+
+    ctx.body = {
+      status: 1,
+    };
+    ctx.status = 200;
+  }
+  // 这个是下载结束后的卸载SD卡
+  async downLoadEnd() {
+    const { ctx, logger } = this;
+    child.exec(`sudo umount /dev/sda1`, function(err, sto) {
+      logger.info('卸载成功',err, sto)
+      // 开始删除之前留下的文件夹
+      child.exec('rm -rf /mnt/*', function(err2, sto2) {
+        logger.info('删除文件夹成功','err2', err2, 'sto2', sto2)
+      })
+    })
+    ctx.body = {
+      status: 1,
+    };
+    ctx.status = 200;
+  }
+  // 这个是下载开始的导入数据
+  async downLoadStart() {
+    const { ctx, logger } = this;
+    child.exec(`sudo ls /dev/sd*`, function(err, sto) {
+      logger.info('开始执行了ls的命令 当前的sd卡 占用的口子为:')
+      logger.info('ls /dev/sd*', err, sto);
+    })
+    // 创立个文件夹 具有读写权限
+    child.exec('rm -rf /mnt/*', function(err2, sto2) {
+      logger.info('删除文件夹成功','err2', err2, 'sto2', sto2)
+      child.exec('sudo mkdir -m 777 /mnt/raspberry_document', function (err, sto) {
+        // 这个时候表示建立成功了
+        logger.info('新建目录成功');
+        child.exec(`sudo mount -o rw /dev/sda1 /mnt/raspberry_document`, function (err, sto) {
+          logger.info('挂载sk卡到文件夹底下') 
+        });
+      });
+    })
+    
+    // 开始返回数据
+    ctx.body = {
+      status: 1,
+    };
+    ctx.status = 200;
+  }
   async GPIOControllerIntertime() {
     const { ctx, logger } = this;
     const body = ctx.request.body;
@@ -96,7 +177,7 @@ class HomeController extends Controller {
       if (timePhotoHandle) {
         clearInterval(timePhotoHandle);
       }
-      rpio.open(str, rpio.OUTPUT, rpio.LOW); // 先初始化为低电平
+      // rpio.open(str, rpio.OUTPUT, rpio.LOW); // 先初始化为低电平
       timePhotoHandle = setInterval(async () => {
         // 开始设置定时器的时间来设定
 
@@ -131,22 +212,110 @@ class HomeController extends Controller {
     const type = body.send;
     logger.info("type", type);
 
-    const str = commandCodeObj[type + ""];
-    logger.info("str", str);
-    // 如果是2进制 那么数据又会是什么样子呢?
-    // 先要打开这个口子
-    rpio.open(str, rpio.OUTPUT, rpio.LOW); // 先初始化为低电平
-    // 开始设置100毫秒为低电平
-    rpio.write(str, rpio.HIGH);
-    // 设置为100ms
-    rpio.msleep(100);
-    rpio.write(str, rpio.LOW);
+    let str = commandCodeObj[type + ""];
     if (type !== "downloadStart" && type !== "downloadEnd") {
-      ctx.body = {
-        status: 1,
-      };
-      ctx.status = 200;
+      logger.info("str", str);
+      // 先要打开这个口子
+      logger.info('引脚 rpio.LOW', rpio.LOW, '引脚OUTPUT', rpio.OUTPUT)
+      // rpio.open(str, rpio.OUTPUT, rpio.LOW); // 先初始化为低电平
+      // rpio.open(str, 1, 0); // 先初始化为低电平
+      // 开始设置100毫秒为低电平
+      //rpio.write(str, rpio.HIGH);
+      rpio.write(str, 1);
+      logger.info('开启电压')
+      // 设置为100ms 开启或者关闭
+      if(type == 'on' || type == 'off') {
+        // 开机是500ms
+        rpio.msleep(500);
+      }else {
+        rpio.msleep(100);
+      }
+     // rpio.write(str, rpio.LOW);
+     rpio.write(str, 0);
+      logger.info('关闭电压')
+    }else {
+      // 这个时候是下载开始
+      // 先要挂载文件
+      if (type === "downloadStart") {
+        // 表示为开始下载
+        // 需要延迟几秒钟然后再给这个数据来挂载 因为有一些延迟
+        // 延迟1秒钟
+        // 这个时候先sd卡切换 然后再usb 通电
+        str = commandCodeObj['SDToggle']
+        // rpio.open(str, rpio.OUTPUT, rpio.LOW); // 先初始化为低电平
+        logger.info('SD卡切换成功')
+        // 开始设置100毫秒为低电平
+        rpio.write(str, rpio.HIGH);
+        // 打开断点程序
+        // rpio.msleep(2000);
+        
+        setTimeout(() => {
+          logger.info('USB 继电器响声开始')
+          // rpio.open(commandCodeObj['SDOn'], rpio.OUTPUT, rpio.LOW); // 先初始化为低电平
+          // rpio.msleep(2000);
+          // 开始设置100毫秒为低电平
+          rpio.write(str, rpio.HIGH);
+          logger.info('USB 继电器响声结束')
+          // 开始切换USB的电压
+        }, 1000)
+       
+        setTimeout(() => {
+          // 开始监听事件了 开始挂载了
+          // 新建这个目录 这个目录每次重启后都会消除掉 所以需要判断是否为重启
+          //
+          
+          
+          // child.exec('rm -rf /mnt/USB_FLASH/*', function(err2, sto2) {
+          //   logger.info('err2', err2, 'sto2', sto2)
+          //   child.exec('sudo ls /dev/sd*', function(err, sto) {
+          //     logger.info('err', err, 'sto', sto)
+          //   })
+          // })
+          // child.exec('sudo mkdir -m 777 /run/user/USB_FLASH', function (err, sto) {
+          //   // 这个时候表示建立成功了
+          //   hasMakeDir = true;
+          //   logger.info('新建目录成功');
+          //   // 新建目录后 需要清空一下这个目录 然后再挂载
+          // });
+          // if(hasMakeDir) {
+          //   // 表示这个是已经重启过了 那么就不需要mkdir 一个新的目录了
+          //   child.exec('sudo ls /dev/sd*', function(err, sto) {
+          //     logger.info('err', err, 'sto', sto)
+          //     child.exec(`sudo mount -o rw /dev/sda1 /run/user/USB_FLASH/`, function (err, sto) {
+          //       logger.info(err, sto);
+          //       logger.info('挂载成功');
+          //     });
+          //   })
+          // } else {
+          // }
+        }, 5000);
+      }
+
+      if (type === "downloadEnd") {
+        str = commandCodeObj['SDToggle']
+        // rpio.open(str, rpio.OUTPUT, rpio.LOW); // 先初始化为低电平
+        rpio.write(str, rpio.LOW);
+
+        rpio.msleep(2000);
+        // rpio.open(commandCodeObj['SDOn'], rpio.OUTPUT, rpio.LOW); // 先初始化为低电平
+        // 开始设置100毫秒为低电平
+        rpio.write(str, rpio.LOW);
+        rpio.msleep(2000);
+          // 先mount 这个sd卡
+          child.exec(`sudo umount /dev/sda1`, function(err, sto) {
+            logger.info('卸载成功',err, sto)
+            // 开始删除之前留下的文件夹
+            child.exec('rm -rf /mnt/*', function(err2, sto2) {
+              logger.info('删除文件夹成功','err2', err2, 'sto2', sto2)
+            })
+          })
+        // 开始切换USB的电压
+      }
     }
+    ctx.body = {
+      status: 1,
+    };
+    ctx.status = 200;
   }
   // 获取本地IP地址
   async getCurrentIP() {

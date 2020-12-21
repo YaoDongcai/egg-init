@@ -10,8 +10,16 @@ module.exports = app => {
   // 获取当前的LED灯的状态
   router.get('/respberry/P36Status', controller.home.status);
   router.get('/respberry/getIP', controller.home.getCurrentIP);
-  // 第二个斑斑的控制GPIO
+  // 第二个版本控制GPIO
+  // 下载开始
+  router.get('/respberry/downLoadStart', controller.home.downLoadStart)
+  // 下载结束
+  router.get('/respberry/downLoadEnd', controller.home.downLoadEnd)
+  // 初始化这些接口
+  router.get('/respberry/initGPIOController', controller.home.initGPIOController)
   router.post('/respberry/GPIOController', controller.home.GPIOController)
+  // 第二个版本来控制单独的控制
+  router.post('/respberry/GPIOControllerByGPIO', controller.home.GPIOControllerByGPIO)
   // 定时拍照的第二个版本
   router.post('/respberry/GPIOControllerIntertime', controller.home.GPIOControllerIntertime)
   // 获取当前的串口接口列表
