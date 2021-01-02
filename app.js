@@ -35,7 +35,6 @@ class AppBootHook {
     let jsonData = JSON.parse(fileData);
     const type = jsonData["workType"];
     // 读取配置后需要将对应的数据设置为这个模式
-    console.log('p模式', type)
     switch (type) {
       case "P":
         // p模式
@@ -59,7 +58,28 @@ class AppBootHook {
         rpio.write(40, rpio.HIGH);
         break;
     }
-    // 启动对焦动作
+    // 这个代码就是创建一个匿名的函数来创建这个context
+    if(jsonData['isSetTime'] == 1) {
+      // 表示为定时服务 那么就需要将以下这个函数
+      const ctx = this.app.createAnonymousContext();
+      // 如果是定时 那么就需要设置这个函数了
+      // 如果是定时拍照那么就要显示这个
+      let time = 0
+      switch (jsonData['unit']) {
+        case 's':
+          time = parseInt(jsonData['defineTime'] * 1000)
+          break
+        case 'm':
+          time = parseInt(jsonData['defineTime'] * 1000 * 60)
+          break
+        case 'h':
+          time = parseInt(jsonData['defineTime'] * 1000 * 60 * 60)
+          break
+      }
+      ctx.service.home.setTimeIntervalByType('photo', file, jsonData, 37, time)
+    }
+    
+    // 这样就可以调用ctx service 函数
   }
 }
 

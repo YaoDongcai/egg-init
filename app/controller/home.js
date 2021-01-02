@@ -199,47 +199,14 @@ class HomeController extends Controller {
     let json = ctx.service.home.readFileJson(file)
     json['defineTime'] = defineTime
     json['unit'] = unit
-    
-
     let str = "";
+    str = commandCodeObj[type + ""];
     // 如果是定时拍照那么就要显示这个
-    if (type === "photo") {
-      json['isSetTime'] = 1 // 设置为定时拍照
-    ctx.service.home.writeFileJson(file, json)
-      str = commandCodeObj["photo" + ""];
-      // 这个时候需要判断时间
-      // 如果之前你已经设定过了这个定时器 那么就需要把这个定时器干掉 防止会吃爆内存
-      if (timePhotoHandle) {
-        clearInterval(timePhotoHandle);
-      }
-      // rpio.open(str, rpio.OUTPUT, rpio.LOW); // 先初始化为低电平
-      timePhotoHandle = setInterval(async () => {
-        // 开始设置定时器的时间来设定
-
-        // 开始设置100毫秒为低电平
-        rpio.write(str, rpio.HIGH);
-        // 设置为100ms
-        rpio.msleep(100);
-        rpio.write(str, rpio.LOW);
-      }, timeOut);
-
-      ctx.body = {
-        status: 1,
-      };
-      ctx.status = 200;
-    } else {
-      // noPhoto
-      json['isSetTime'] = 0 // 设置为定时拍照
-      ctx.service.home.writeFileJson(file, json)
-      // 表示为取消定时拍照
-      if (timePhotoHandle) {
-        clearInterval(timePhotoHandle);
-        ctx.body = {
-          status: 1,
-        };
-        ctx.status = 200;
-      }
-    }
+    ctx.service.home.setTimeIntervalByType(type, file, json, str, timeOut)
+    ctx.body = {
+      status: 1,
+    };
+    ctx.status = 200;
   }
   // 第二版的数据获取 GPIO 的控制
   async GPIOController() {
