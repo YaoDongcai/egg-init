@@ -4,6 +4,7 @@ const Controller = require("egg").Controller;
 const SerialPort = require("serialport");
 const child = require("child_process");
 const os = require("os");
+const path = require('path')
 const fs = require("fs");
 const FILE_URL = "your file url";
 const NETWORK = os.networkInterfaces();
@@ -63,8 +64,8 @@ const commandCodeObj = {
   focusAdd: "AA754E02000093", // 变焦+
   downloadStart: "AA751E020100C2", // 数据下载开始
   downloadEnd: "AA751E020000C3", // 数据下载结束
-  audioStart: "AA755E02010082", // 录像开始
-  audioEnd: "AA755E02000083", // 录像结束
+  audioStart: 12, // 录像开始
+  audioEnd: 12, // 录像结束
   autoModel: "AA755502010089", // auto自动模式
   avModel: "AA75550202008A", // av模式
   hdrModel: "AA75550203008B", // HDR 模式
@@ -85,15 +86,20 @@ class HomeController extends Controller {
   async initGPIOController() {
     const { ctx, logger } = this;
     // 开始初始化以下需要用到的GPIO口
-    const GPIOList = [35, 37,7, 13, 31, 29, 11, 15, 32, 22]
-    // 初始化后直接赋予值
-    for(let i=0; i<GPIOList.length; ++i) {
-      rpio.open(GPIOList[i], rpio.OUTPUT, rpio.LOW); // 先初始化为低电平
-      logger.info('初始化GPIO引脚', GPIOList[i])
-      rpio.write(GPIOList[i], 0);
-    }
+    // const GPIOList = [35, 37,7, 13, 31, 29, 11, 15, 32, 22, 12, 36, 38, 40]
+    // // 初始化后直接赋予值
+    // for(let i=0; i<GPIOList.length; ++i) {
+    //   rpio.open(GPIOList[i], rpio.OUTPUT, rpio.LOW); // 先初始化为低电平
+    //   logger.info('初始化GPIO引脚', GPIOList[i])
+    //   rpio.write(GPIOList[i], 0);
+    // }
+    // 获取文件里面的json对象
+    const dirname = ctx.app.baseDir
+    var file = path.join(dirname, "client.config.json");
+    let jsonData = ctx.service.home.readFileJson(file)
     ctx.body = {
       status: 1,
+      data: jsonData
     };
     ctx.status = 200;
 
@@ -161,16 +167,45 @@ class HomeController extends Controller {
     };
     ctx.status = 200;
   }
+  async GPIOControllerByModel() {
+    const { ctx, logger } = this;
+    const body = ctx.request.body;
+    const type = body.send;
+    ctx.service.home.initModel(type)
+    const dirname = ctx.app.baseDir
+    // 开始写入这个模态
+    var file = path.join(dirname, "client.config.json");
+    let json = ctx.service.home.readFileJson(file)
+    json['workType'] = type
+    ctx.service.home.writeFileJson(file, json)
+    ctx.body = {
+      status: 1,
+    };
+    ctx.status = 200;
+  }
+
   async GPIOControllerIntertime() {
     const { ctx, logger } = this;
     const body = ctx.request.body;
     const type = body.send;
     const timeOut = body.timeOut; // 定时拍照的时间
+    const defineTime = body.defineTime;
+    const unit = body.unit;
+    
     // 定义全局定时拍照的时间句柄
+    const dirname = ctx.app.baseDir
+    // 开始写入这个模态
+    var file = path.join(dirname, "client.config.json");
+    let json = ctx.service.home.readFileJson(file)
+    json['defineTime'] = defineTime
+    json['unit'] = unit
+    
 
     let str = "";
     // 如果是定时拍照那么就要显示这个
     if (type === "photo") {
+      json['isSetTime'] = 1 // 设置为定时拍照
+    ctx.service.home.writeFileJson(file, json)
       str = commandCodeObj["photo" + ""];
       // 这个时候需要判断时间
       // 如果之前你已经设定过了这个定时器 那么就需要把这个定时器干掉 防止会吃爆内存
@@ -194,6 +229,8 @@ class HomeController extends Controller {
       ctx.status = 200;
     } else {
       // noPhoto
+      json['isSetTime'] = 0 // 设置为定时拍照
+      ctx.service.home.writeFileJson(file, json)
       // 表示为取消定时拍照
       if (timePhotoHandle) {
         clearInterval(timePhotoHandle);

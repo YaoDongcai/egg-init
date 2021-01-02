@@ -17,6 +17,8 @@ module.exports = app => {
   router.get('/respberry/downLoadEnd', controller.home.downLoadEnd)
   // 初始化这些接口
   router.get('/respberry/initGPIOController', controller.home.initGPIOController)
+  // 设置模式
+  router.post('/respberry/GPIOControllerByModel', controller.home.GPIOControllerByModel)
   router.post('/respberry/GPIOController', controller.home.GPIOController)
   // 第二个版本来控制单独的控制
   router.post('/respberry/GPIOControllerByGPIO', controller.home.GPIOControllerByGPIO)
