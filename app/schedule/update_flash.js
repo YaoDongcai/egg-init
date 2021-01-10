@@ -18,7 +18,6 @@ class UpdateFlash extends Subscription {
     rpio.write(str, 1);
     rpio.msleep(1000) // 执行一秒后开始执行这个操作
     rpio.write(str, 0);
-    console.log('我是定时任务开始在执行了')
   }
 }
 

@@ -97,6 +97,7 @@ class HomeController extends Controller {
     const dirname = ctx.app.baseDir
     var file = path.join(dirname, "client.config.json");
     let jsonData = ctx.service.home.readFileJson(file)
+    // 增加了几个判断条件 是否有2个是否为空 如果为空 给默认的值即可
     ctx.body = {
       status: 1,
       data: jsonData
@@ -197,8 +198,10 @@ class HomeController extends Controller {
     // 开始写入这个模态
     var file = path.join(dirname, "client.config.json");
     let json = ctx.service.home.readFileJson(file)
-    json['defineTime'] = defineTime
-    json['unit'] = unit
+    if(type == 'photo') {
+      json['defineTime'] = defineTime
+      json['unit'] = unit
+    }
     let str = "";
     str = commandCodeObj[type + ""];
     // 如果是定时拍照那么就要显示这个

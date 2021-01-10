@@ -15,14 +15,12 @@ class UpdateFocus extends Subscription {
     // ctx.app
     // 开始执行对焦的功能
     ctx.app.maxFocusLimit += 1
-    logger.info('ctx.app.cache.maxFocusLimit', ctx.app.maxFocusLimit)
     if(ctx.app.maxFocusLimit > 30) {
         const str = 11
         rpio.write(str, 1);
         rpio.msleep(50) // 如果是50ms 的操作就可以执行这个操作了 对焦的作用
         rpio.write(str, 0);
         ctx.app.maxFocusLimit = 0
-        console.log('我是定时任务开始在执行对焦的功能了')
     }
     
     

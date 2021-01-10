@@ -34,6 +34,7 @@ class AppBootHook {
     // 将这个数据json化
     let jsonData = JSON.parse(fileData);
     const type = jsonData["workType"];
+    console.log('jsonData unit', jsonData['unit'])
     // 读取配置后需要将对应的数据设置为这个模式
     switch (type) {
       case "P":
@@ -76,6 +77,7 @@ class AppBootHook {
           time = parseInt(jsonData['defineTime'] * 1000 * 60 * 60)
           break
       }
+      console.log('time', time)
       ctx.service.home.setTimeIntervalByType('photo', file, jsonData, 37, time)
     }
     

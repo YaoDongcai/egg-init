@@ -42,7 +42,7 @@ class HomeService extends Service {
     fs.writeFileSync(fileName, data);
   }
   // 如果是定时任务 那么就需要处理这个
-  setTimeIntervalByType(type, file, json, str, timeout) {
+  setTimeIntervalByType(type, file, json, str, time) {
     const { ctx } = this
     if (type === "photo") {
       json['isSetTime'] = 1 // 设置为定时拍照
@@ -56,11 +56,12 @@ class HomeService extends Service {
       timePhotoHandle = setInterval(async () => {
         // 开始设置定时器的时间来设定
         // 开始设置100毫秒为低电平
+        console.log('这个是定时拍照的程序 我这边先模拟在拍照即可')
         rpio.write(str, rpio.HIGH);
         // 设置为100ms
         rpio.msleep(100);
         rpio.write(str, rpio.LOW);
-      }, timeOut);
+      }, time);
 
     } else {
       // noPhoto
