@@ -4,7 +4,7 @@ const Controller = require("egg").Controller;
 const SerialPort = require("serialport");
 const child = require("child_process");
 const os = require("os");
-const path = require('path')
+const path = require("path");
 const fs = require("fs");
 const FILE_URL = "your file url";
 const NETWORK = os.networkInterfaces();
@@ -94,16 +94,15 @@ class HomeController extends Controller {
     //   rpio.write(GPIOList[i], 0);
     // }
     // 获取文件里面的json对象
-    const dirname = ctx.app.baseDir
+    const dirname = ctx.app.baseDir;
     var file = path.join(dirname, "client.config.json");
-    let jsonData = ctx.service.home.readFileJson(file)
+    let jsonData = ctx.service.home.readFileJson(file);
     // 增加了几个判断条件 是否有2个是否为空 如果为空 给默认的值即可
     ctx.body = {
       status: 1,
-      data: jsonData
+      data: jsonData,
     };
     ctx.status = 200;
-
   }
   // 这个接口是为了永久输出电压的 为了保持电压的输出不变
   async GPIOControllerByGPIO() {
@@ -114,13 +113,13 @@ class HomeController extends Controller {
     // 对于SD卡切换或者USB通电 都需要保存永久的电压或者电平的
     // rpio.open(str, rpio.OUTPUT, rpio.LOW); // 先初始化为低电平
     // 永久为高电平
-    if((type + '').includes('On')) {
+    if ((type + "").includes("On")) {
       // 表示这个是为开启状态 那么就是on
       rpio.write(str, 1);
-      logger.info('包含为on 为高电平')
-    }else {
+      logger.info("包含为on 为高电平");
+    } else {
       rpio.write(str, 0);
-      logger.info('包含为off 为低电平')
+      logger.info("包含为off 为低电平");
     }
 
     ctx.body = {
@@ -131,13 +130,13 @@ class HomeController extends Controller {
   // 这个是下载结束后的卸载SD卡
   async downLoadEnd() {
     const { ctx, logger } = this;
-    child.exec(`sudo umount /dev/sda1`, function(err, sto) {
-      logger.info('卸载成功',err, sto)
+    child.exec(`sudo umount /dev/sda1`, function (err, sto) {
+      logger.info("卸载成功", err, sto);
       // 开始删除之前留下的文件夹
-      child.exec('rm -rf /mnt/*', function(err2, sto2) {
-        logger.info('删除文件夹成功','err2', err2, 'sto2', sto2)
-      })
-    })
+      child.exec("rm -rf /mnt/*", function (err2, sto2) {
+        logger.info("删除文件夹成功", "err2", err2, "sto2", sto2);
+      });
+    });
     ctx.body = {
       status: 1,
     };
@@ -146,22 +145,28 @@ class HomeController extends Controller {
   // 这个是下载开始的导入数据
   async downLoadStart() {
     const { ctx, logger } = this;
-    child.exec(`sudo ls /dev/sd*`, function(err, sto) {
-      logger.info('开始执行了ls的命令 当前的sd卡 占用的口子为:')
-      logger.info('ls /dev/sd*', err, sto);
-    })
+    child.exec(`sudo ls /dev/sd*`, function (err, sto) {
+      logger.info("开始执行了ls的命令 当前的sd卡 占用的口子为:");
+      logger.info("ls /dev/sd*", err, sto);
+    });
     // 创立个文件夹 具有读写权限
-    child.exec('rm -rf /mnt/*', function(err2, sto2) {
-      logger.info('删除文件夹成功','err2', err2, 'sto2', sto2)
-      child.exec('sudo mkdir -m 777 /mnt/raspberry_document', function (err, sto) {
-        // 这个时候表示建立成功了
-        logger.info('新建目录成功');
-        child.exec(`sudo mount -o rw /dev/sda1 /mnt/raspberry_document`, function (err, sto) {
-          logger.info('挂载sk卡到文件夹底下') 
-        });
-      });
-    })
-    
+    child.exec("rm -rf /mnt/*", function (err2, sto2) {
+      logger.info("删除文件夹成功", "err2", err2, "sto2", sto2);
+      child.exec(
+        "sudo mkdir -m 777 /mnt/raspberry_document",
+        function (err, sto) {
+          // 这个时候表示建立成功了
+          logger.info("新建目录成功");
+          child.exec(
+            `sudo mount -o rw /dev/sda1 /mnt/raspberry_document`,
+            function (err, sto) {
+              logger.info("挂载sk卡到文件夹底下");
+            }
+          );
+        }
+      );
+    });
+
     // 开始返回数据
     ctx.body = {
       status: 1,
@@ -172,13 +177,15 @@ class HomeController extends Controller {
     const { ctx, logger } = this;
     const body = ctx.request.body;
     const type = body.send;
-    ctx.service.home.initModel(type)
-    const dirname = ctx.app.baseDir
+    // G5X的模型
+    ctx.service.home.initG5XModel(type);
+    // ctx.service.home.initModel(type)
+    const dirname = ctx.app.baseDir;
     // 开始写入这个模态
     var file = path.join(dirname, "client.config.json");
-    let json = ctx.service.home.readFileJson(file)
-    json['workType'] = type
-    ctx.service.home.writeFileJson(file, json)
+    let json = ctx.service.home.readFileJson(file);
+    json["workType"] = type;
+    ctx.service.home.writeFileJson(file, json);
     ctx.body = {
       status: 1,
     };
@@ -192,20 +199,20 @@ class HomeController extends Controller {
     const timeOut = body.timeOut; // 定时拍照的时间
     const defineTime = body.defineTime;
     const unit = body.unit;
-    
+
     // 定义全局定时拍照的时间句柄
-    const dirname = ctx.app.baseDir
+    const dirname = ctx.app.baseDir;
     // 开始写入这个模态
     var file = path.join(dirname, "client.config.json");
-    let json = ctx.service.home.readFileJson(file)
-    if(type == 'photo') {
-      json['defineTime'] = defineTime
-      json['unit'] = unit
+    let json = ctx.service.home.readFileJson(file);
+    if (type == "photo") {
+      json["defineTime"] = defineTime;
+      json["unit"] = unit;
     }
     let str = "";
     str = commandCodeObj[type + ""];
     // 如果是定时拍照那么就要显示这个
-    ctx.service.home.setTimeIntervalByType(type, file, json, str, timeOut)
+    ctx.service.home.setTimeIntervalByType(type, file, json, str, timeOut);
     ctx.body = {
       status: 1,
     };
@@ -223,24 +230,24 @@ class HomeController extends Controller {
     if (type !== "downloadStart" && type !== "downloadEnd") {
       logger.info("str", str);
       // 先要打开这个口子
-      logger.info('引脚 rpio.LOW', rpio.LOW, '引脚OUTPUT', rpio.OUTPUT)
+      logger.info("引脚 rpio.LOW", rpio.LOW, "引脚OUTPUT", rpio.OUTPUT);
       // rpio.open(str, rpio.OUTPUT, rpio.LOW); // 先初始化为低电平
       // rpio.open(str, 1, 0); // 先初始化为低电平
       // 开始设置100毫秒为低电平
       //rpio.write(str, rpio.HIGH);
       rpio.write(str, 1);
-      logger.info('开启电压')
+      logger.info("开启电压");
       // 设置为100ms 开启或者关闭
-      if(type == 'on' || type == 'off') {
+      if (type == "on" || type == "off") {
         // 开机是500ms
         rpio.msleep(500);
-      }else {
+      } else {
         rpio.msleep(100);
       }
-     // rpio.write(str, rpio.LOW);
-     rpio.write(str, 0);
-      logger.info('关闭电压')
-    }else {
+      // rpio.write(str, rpio.LOW);
+      rpio.write(str, 0);
+      logger.info("关闭电压");
+    } else {
       // 这个时候是下载开始
       // 先要挂载文件
       if (type === "downloadStart") {
@@ -248,30 +255,28 @@ class HomeController extends Controller {
         // 需要延迟几秒钟然后再给这个数据来挂载 因为有一些延迟
         // 延迟1秒钟
         // 这个时候先sd卡切换 然后再usb 通电
-        str = commandCodeObj['SDToggle']
+        str = commandCodeObj["SDToggle"];
         // rpio.open(str, rpio.OUTPUT, rpio.LOW); // 先初始化为低电平
-        logger.info('SD卡切换成功')
+        logger.info("SD卡切换成功");
         // 开始设置100毫秒为低电平
         rpio.write(str, rpio.HIGH);
         // 打开断点程序
         // rpio.msleep(2000);
-        
+
         setTimeout(() => {
-          logger.info('USB 继电器响声开始')
+          logger.info("USB 继电器响声开始");
           // rpio.open(commandCodeObj['SDOn'], rpio.OUTPUT, rpio.LOW); // 先初始化为低电平
           // rpio.msleep(2000);
           // 开始设置100毫秒为低电平
           rpio.write(str, rpio.HIGH);
-          logger.info('USB 继电器响声结束')
+          logger.info("USB 继电器响声结束");
           // 开始切换USB的电压
-        }, 1000)
-       
+        }, 1000);
+
         setTimeout(() => {
           // 开始监听事件了 开始挂载了
           // 新建这个目录 这个目录每次重启后都会消除掉 所以需要判断是否为重启
           //
-          
-          
           // child.exec('rm -rf /mnt/USB_FLASH/*', function(err2, sto2) {
           //   logger.info('err2', err2, 'sto2', sto2)
           //   child.exec('sudo ls /dev/sd*', function(err, sto) {
@@ -299,7 +304,7 @@ class HomeController extends Controller {
       }
 
       if (type === "downloadEnd") {
-        str = commandCodeObj['SDToggle']
+        str = commandCodeObj["SDToggle"];
         // rpio.open(str, rpio.OUTPUT, rpio.LOW); // 先初始化为低电平
         rpio.write(str, rpio.LOW);
 
@@ -308,14 +313,14 @@ class HomeController extends Controller {
         // 开始设置100毫秒为低电平
         rpio.write(str, rpio.LOW);
         rpio.msleep(2000);
-          // 先mount 这个sd卡
-          child.exec(`sudo umount /dev/sda1`, function(err, sto) {
-            logger.info('卸载成功',err, sto)
-            // 开始删除之前留下的文件夹
-            child.exec('rm -rf /mnt/*', function(err2, sto2) {
-              logger.info('删除文件夹成功','err2', err2, 'sto2', sto2)
-            })
-          })
+        // 先mount 这个sd卡
+        child.exec(`sudo umount /dev/sda1`, function (err, sto) {
+          logger.info("卸载成功", err, sto);
+          // 开始删除之前留下的文件夹
+          child.exec("rm -rf /mnt/*", function (err2, sto2) {
+            logger.info("删除文件夹成功", "err2", err2, "sto2", sto2);
+          });
+        });
         // 开始切换USB的电压
       }
     }

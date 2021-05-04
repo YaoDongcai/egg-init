@@ -3,6 +3,48 @@ const rpio = require("rpio");
 const fs = require("fs");
 var timePhotoHandle = null;
 class HomeService extends Service {
+  // 初始化G5X的模式
+  initG5XModel(type) {
+    switch (type) {
+      // 36 38 40 22
+      case "P": // P模式
+        rpio.write(36, rpio.LOW);
+        rpio.write(38, rpio.LOW);
+        rpio.write(40, rpio.HIGH);
+        rpio.write(22, rpio.HIGH);
+        break;
+      case "AV": // Av 模式
+        rpio.write(36, rpio.HIGH);
+        rpio.write(38, rpio.LOW);
+        rpio.write(40, rpio.LOW);
+        rpio.write(22, rpio.HIGH);
+        break;
+      case "TV": // Tv 模式
+        rpio.write(36, rpio.LOW);
+        rpio.write(38, rpio.LOW);
+        rpio.write(40, rpio.LOW);
+        rpio.write(22, rpio.HIGH);
+        break;
+      case "AUTO": // 自动模式
+        rpio.write(36, rpio.LOW);
+        rpio.write(38, rpio.LOW);
+        rpio.write(40, rpio.HIGH);
+        rpio.write(22, rpio.LOW);
+        break;
+      case "MIX": // 混合模式
+        rpio.write(36, rpio.HIGH);
+        rpio.write(38, rpio.LOW);
+        rpio.write(40, rpio.LOW);
+        rpio.write(22, rpio.HIGH);
+        break;
+      case "VIDEO": // 摄像模式
+        rpio.write(36, rpio.LOW);
+        rpio.write(38, rpio.HIGH);
+        rpio.write(40, rpio.LOW);
+        rpio.write(22, rpio.LOW);
+        break;
+    }
+  }
   // 开始设置模式选择
   initModel(type) {
     switch (type) {
@@ -31,10 +73,10 @@ class HomeService extends Service {
   }
   // 读取文件
   readFileJson(fileName) {
-    let fileData = fs.readFileSync(fileName)
+    let fileData = fs.readFileSync(fileName);
     // 将这个数据json化
-    let jsonData = JSON.parse(fileData)
-    return jsonData
+    let jsonData = JSON.parse(fileData);
+    return jsonData;
   }
   // 写入文件
   writeFileJson(fileName, json) {
@@ -43,10 +85,10 @@ class HomeService extends Service {
   }
   // 如果是定时任务 那么就需要处理这个
   setTimeIntervalByType(type, file, json, str, time) {
-    const { ctx } = this
+    const { ctx } = this;
     if (type === "photo") {
-      json['isSetTime'] = 1 // 设置为定时拍照
-      ctx.service.home.writeFileJson(file, json)
+      json["isSetTime"] = 1; // 设置为定时拍照
+      ctx.service.home.writeFileJson(file, json);
       // 这个时候需要判断时间
       // 如果之前你已经设定过了这个定时器 那么就需要把这个定时器干掉 防止会吃爆内存
       if (timePhotoHandle) {
@@ -56,17 +98,16 @@ class HomeService extends Service {
       timePhotoHandle = setInterval(async () => {
         // 开始设置定时器的时间来设定
         // 开始设置100毫秒为低电平
-        console.log('这个是定时拍照的程序 我这边先模拟在拍照即可')
+        console.log("这个是定时拍照的程序 我这边先模拟在拍照即可");
         rpio.write(str, rpio.HIGH);
         // 设置为100ms
         rpio.msleep(100);
         rpio.write(str, rpio.LOW);
       }, time);
-
     } else {
       // noPhoto
-      json['isSetTime'] = 0 // 设置为定时拍照
-      ctx.service.home.writeFileJson(file, json)
+      json["isSetTime"] = 0; // 设置为定时拍照
+      ctx.service.home.writeFileJson(file, json);
       // 表示为取消定时拍照
       if (timePhotoHandle) {
         clearInterval(timePhotoHandle);
