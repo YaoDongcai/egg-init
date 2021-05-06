@@ -43,6 +43,22 @@ var hasMakeDir = false; // 默认是否建立文件夹了
 //   pModel: 'AA7555020a0082',
 //   mixinModel: 'AA7555020b0083',
 // };
+const uatCommandCodeObj = {
+  AA7511020000CC: "on", // 开机
+  AA7522020000FF: "off", // 关机
+  AA7533020000EE: "photo", // 手动拍照
+  AA7577020000AA: "menuOn",
+  AA758802000055: "menuOff",
+  AA759902000044: "menuUp",
+  AA75AA02000077: "menuDown",
+  AA75BB02000066: "menuLeft",
+  AA75CC02000011: "menuRight",
+  AA75DD02000000: "menuOk",
+  AA7555020a0082: "P",
+  AA755502010089: "AUTO",
+  AA75550202008A: "TV",
+  AA75550207008F: "AV",
+};
 // 以下是第二个版本的命令
 const commandCodeObj = {
   on: 35, // 开机命令
@@ -85,6 +101,15 @@ class HomeController extends Controller {
   }
   async initGPIOController() {
     const { ctx, logger } = this;
+    const body = ctx.request.body;
+    // 默认打开串口来可以通信识别
+
+    const dateYMD = body.dateYMD;
+    const dateHMS = body.dateHMS;
+    // 强制设置系统时间
+    ctx.service.home.setDate(dateYMD, dateHMS);
+    // 设置串口打开
+    // 初始化时间范围内
     // 开始初始化以下需要用到的GPIO口
     // const GPIOList = [35, 37,7, 13, 31, 29, 11, 15, 32, 22, 12, 36, 38, 40]
     // // 初始化后直接赋予值
@@ -98,6 +123,7 @@ class HomeController extends Controller {
     var file = path.join(dirname, "client.config.json");
     let jsonData = ctx.service.home.readFileJson(file);
     // 增加了几个判断条件 是否有2个是否为空 如果为空 给默认的值即可
+
     ctx.body = {
       status: 1,
       data: jsonData,
@@ -179,7 +205,7 @@ class HomeController extends Controller {
     const type = body.send;
     // G5X的模型
     ctx.service.home.initG5XModel(type);
-    // ctx.service.home.initModel(type)
+    // ctx.service.home.initModel(type);
     const dirname = ctx.app.baseDir;
     // 开始写入这个模态
     var file = path.join(dirname, "client.config.json");
@@ -413,22 +439,17 @@ class HomeController extends Controller {
         ctx.status = 200;
         // 开始接受数据
         serialPort.on("data", function (data) {
-          logger.info("on data", data.toString("hex"));
+          // 转换为16进制的数据
+          let dataArray = data.toString("hex");
+          // 开始判断当前的数据字节是否正确
+          logger.info("dataArray", dataArray);
+          const length = dataArray.length;
+          logger.info("length", length);
+          // 开始判断校验位是否正确
+          for (let i = 0; i <= dataArray.length; ++i) {}
+          logger.info("on data");
         });
       }
-      // function(error) {
-      //   if (error) {
-      //     globalHasOpenPort = false;
-      //   } else {
-      //     globalHasOpenPort = true;
-      //     globalSerialPort = serialPort;
-      //     // 开始接受数据
-      //     serialPort.on('data', function(data) {
-      //       logger.info('on data', data);
-      //     });
-      //   }
-      // }
-      console.log("result", result);
     }
     // 打开这个端口前 最好先close一下 这样就不会让它关闭了
 

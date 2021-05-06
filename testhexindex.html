@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body></body>
+  <script>
+    // 16进制的数目
+    function hex2int(hex) {
+      var len = hex.length,
+        a = new Array(len),
+        code;
+      for (var i = 0; i < len; i++) {
+        code = hex.charCodeAt(i);
+        if (48 <= code && code < 58) {
+          code -= 48;
+        } else {
+          code = (code & 0xdf) - 65 + 10;
+        }
+        a[i] = code;
+      }
+
+      return a.reduce(function (acc, c) {
+        acc = 16 * acc + c;
+        return acc;
+      }, 0);
+    }
+
+    const hex = "AA753307141501110C140FED";
+    const hexArray = [];
+    const length = hex.length;
+    let temp = "";
+    for (let i = 0; i <= length - 1; i += 2) {
+      temp = hex[i] + "" + hex[i + 1];
+      hexArray.push(temp);
+    }
+    console.log(hexArray[4]);
+    // 第4位和第5位组合为年份
+    let heighBit, lowBit;
+
+    heightBit = (hexArray[4] + "").substring(0, 1);
+    lowBit = hexArray[5].substr(1, 1);
+    // 获取到year
+    let year = "20" + "" + hex2int(heightBit + "" + lowBit);
+    let month = hex2int(hexArray[6]);
+    let day = hex2int(hexArray[7]);
+    let hour = hex2int(hexArray[8]);
+    let min = hex2int(hexArray[9]);
+    let sec = hex2int(hexArray[10]);
+    const time =
+      year +
+      "年" +
+      month +
+      "月" +
+      day +
+      "日" +
+      hour +
+      "时" +
+      min +
+      "分" +
+      sec +
+      "秒";
+    console.log(time);
+  </script>
+</html>
