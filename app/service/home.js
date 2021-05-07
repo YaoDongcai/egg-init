@@ -3,8 +3,9 @@ const rpio = require("rpio");
 const child = require("child_process");
 const fs = require("fs");
 var Datastore = require("nedb");
-var dbName = path.join(__dirname, "camera");
-var db = new Datastore({ filename: dbName, autoload: true });
+const path = require("path");
+
+var db = null;
 var timePhotoHandle = null;
 const commandCodeObj = {
   on: 35, // 开机命令
@@ -41,8 +42,32 @@ const commandCodeObj = {
   mixinModel: "AA7555020b0083",
 };
 class HomeService extends Service {
+  // 获取所有的数据
+  initDB(dbName) {
+    db = new Datastore({ filename: dbName, autoload: true });
+    // db.insert({
+    //   time: "2021年5月份",
+    //   index: 1,
+    // });
+  }
+  selectAll() {
+    // 返回所有的结果数据
+    const { logger } = this;
+    logger.info("selectAll");
+    return new Promise((resolve, reject) => {
+      db.find({}, (err, docs) => {
+        logger.info("docs", docs);
+        if (err) {
+          return reject(err);
+        }
+        resolve(docs);
+      });
+    });
+  }
   handleGPIOByType(type1, time = "") {
+    console.log("type1", type1);
     let str = commandCodeObj[type1 + ""];
+    console.log("str", str);
     // 这个时候需要判断是否是模式选择
     rpio.write(str, 1);
     // 设置为100ms 开启或者关闭
@@ -368,7 +393,6 @@ class HomeService extends Service {
         rpio.write(str, rpio.HIGH);
         // 设置为100ms
         rpio.msleep(100);
-        ss;
         rpio.write(str, rpio.LOW);
         db.count({}, function (err, count) {
           // count equals to 4

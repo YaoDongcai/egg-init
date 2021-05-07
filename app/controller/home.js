@@ -99,6 +99,18 @@ class HomeController extends Controller {
     const { ctx } = this;
     await ctx.render("index.html");
   }
+  async exportData() {
+    const { ctx, logger } = this;
+    logger.info("exportData");
+    const findAllResult = await ctx.service.home.selectAll();
+    // 找到所有的数据
+    // 这个时候开始返回给前台即可
+    ctx.body = {
+      status: 1,
+      data: findAllResult,
+    };
+    ctx.status = 200;
+  }
   async initGPIOController() {
     const { ctx, logger } = this;
     const body = ctx.request.body;

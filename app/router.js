@@ -49,4 +49,6 @@ module.exports = (app) => {
     "/respberry/writePortIsIntertime",
     controller.home.writePortIsIntertime
   );
+  // 导出数据库的数据
+  router.get("/respberry/exportData", controller.home.exportData);
 };

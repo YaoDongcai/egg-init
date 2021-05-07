@@ -9,6 +9,8 @@ const uatCommandCodeObj = {
   11: "on", // 开机
   22: "off", // 关机
   33: "photo", // 手动拍照
+  44: "photo", // 定时拍照
+  66: "noPhoto", // 停止拍照
   77: "menuOn",
   88: "menuOff",
   99: "menuUp",
@@ -57,8 +59,6 @@ class AppBootHook {
     this.app = app;
     // 需要在这里设置一个变量 如果这个变量最大为50
     app.maxFocusLimit = 0;
-    const myDate = new Date();
-    const localeDate = myDate.toLocaleDateString();
     app.on("request", (ctx) => {
       // 监听这个里面的所有请求是否都经过这个
       app.maxFocusLimit = 0;
@@ -69,6 +69,8 @@ class AppBootHook {
   async serverDidReady() {
     // const { logger } = this;
     const ctx = this.app.createAnonymousContext();
+    const dbName = path.join(__dirname, "camera");
+    ctx.service.home.initDB(dbName);
     // 默认开始初始化数据
     const GPIOList = [
       35,
@@ -161,6 +163,7 @@ class AppBootHook {
         // 开始接受数据
         serialPort.on("data", async function (data) {
           let dataArray = data.toString("hex");
+          console.log("dataArray", dataArray);
           dataArray = dataArray.toUpperCase(); // 变成大写的
           // 开始判断当前的数据字节是否正确
           // 开始判断校验位是否正确
@@ -169,8 +172,10 @@ class AppBootHook {
 
           const codeType = dataArray.substring(4, 6);
           let type1 = null;
-          // 表示为模式选择
+          // 为取消定时拍照
+
           if (codeType.toUpperCase() == "55") {
+            // 表示为模式选择
             const bitType = dataArray.substring(9, 10);
             console.log("bitType", bitType);
             switch (bitType) {
@@ -190,6 +195,7 @@ class AppBootHook {
           } else {
             type1 = uatCommandCodeObj[codeType.toUpperCase() + ""];
           }
+          console.log("type1", type1, codeType.toUpperCase());
           // 如果为55 那么就需要再判断
           if (
             type1 == "P" ||
@@ -201,7 +207,17 @@ class AppBootHook {
           } else {
             // 开始执行对应的io口即可
             // logger.info("type", type);
+            console.log("type1", type1, codeType.toUpperCase());
             // 开始判断是否为定时拍照
+            if (type1 == "noPhoto") {
+              ctx.service.home.setTimeIntervalByType(
+                "noPhoto",
+                file,
+                jsonData,
+                37,
+                0
+              );
+            }
             if (type1 === "photo") {
               // 表示为拍照 需要检测是否为定时拍照 还是图片给的时间拍照
               const isContainerTime = dataArray.substring(6, 8) == "07";
@@ -216,12 +232,12 @@ class AppBootHook {
                 return;
               }
               // 定时拍照
-              if (dataArray.substring(6, 8) == "02") {
+              if (codeType.toUpperCase() == "44") {
                 const timeDate = dataArray.substring(9, 11); // 需要转为16进制的时间 否则不对
                 const unitTime = dataArray.substring(11, 13);
                 let isSetTime = false;
                 isSetTime = timeDate !== "00";
-                if (isSetTIme) {
+                if (isSetTime) {
                   // 表示为定时服务 那么就需要将以下这个函数
                   // 如果是定时 那么就需要设置这个函数了
                   // 如果是定时拍照那么就要显示这个
@@ -248,7 +264,12 @@ class AppBootHook {
                 }
                 return;
               }
+              if (codeType.toUpperCase() == "33") {
+                ctx.service.home.handleGPIOByType(type1);
+              }
             } else {
+              // 这个时候需要取消为nophoto
+              console.log("拍照", type1);
               ctx.service.home.handleGPIOByType(type1);
             }
           }
