@@ -1,10 +1,10 @@
 const Service = require("egg").Service;
 const rpio = require("rpio");
 const child = require("child_process");
-const fs = require("fs");
 var Datastore = require("nedb");
 const path = require("path");
-
+const fs = require("fs");
+const SerialPort = require("serialport");
 var db = null;
 var timePhotoHandle = null;
 const commandCodeObj = {
@@ -42,6 +42,252 @@ const commandCodeObj = {
   mixinModel: "AA7555020b0083",
 };
 class HomeService extends Service {
+  // 定时拍照设置
+  setGpioPhotoInternalTime(dataArray, file, jsonData) {
+    const timeDate = dataArray.substring(9, 11); // 需要转为16进制的时间 否则不对
+    const unitTime = dataArray.substring(11, 13);
+    let isSetTime = false;
+    isSetTime = timeDate !== "00";
+    if (isSetTime) {
+      // 表示为定时服务 那么就需要将以下这个函数
+      // 如果是定时 那么就需要设置这个函数了
+      // 如果是定时拍照那么就要显示这个
+      let time = 0;
+      switch (unitTime) {
+        case "01":
+          time = parseInt(timeDate * 1000);
+          break;
+        case "02":
+          time = parseInt(timeDate * 1000 * 60);
+          break;
+        case "03":
+          time = parseInt(timeDate * 1000 * 60 * 60);
+          break;
+      }
+      this.setTimeIntervalByType("photo", file, jsonData, 37, time);
+    }
+  }
+  setGpioPhoto(time = "") {
+    const str = 37;
+    rpio.write(str, 1);
+    rpio.msleep(100);
+    // rpio.write(str, rpio.LOW);
+    rpio.write(str, 0);
+    // 同时需要写入数据库中
+    console.log("正在执行拍照的程序");
+    db.count({}, function (err, count) {
+      // count equals to 4
+      db.insert({
+        time: time,
+        index: count + 1,
+      });
+    });
+  }
+  setGpioPhotoByTime(hex) {
+    const isContainerTime = hex.substring(6, 8) == "07";
+    // 表示为带有时间的拍照
+    if (isContainerTime) {
+      // 带有时间的拍照
+      const hexArray = [];
+      const length = hex.length;
+      let temp = "";
+      for (let i = 0; i <= length - 1; i += 2) {
+        temp = hex[i] + "" + hex[i + 1];
+        hexArray.push(temp);
+      }
+      // 第4位和第5位组合为年份
+      let heighBit, lowBit;
+      heightBit = (hexArray[4] + "").substring(0, 1);
+      lowBit = hexArray[5].substr(1, 1);
+      // 获取到year
+      let year = "20" + "" + this.hex2int(heightBit + "" + lowBit);
+      let month = this.hex2int(hexArray[6]);
+      let day = this.hex2int(hexArray[7]);
+      let hour = this.hex2int(hexArray[8]);
+      let min = this.hex2int(hexArray[9]);
+      let sec = this.hex2int(hexArray[10]);
+      const time =
+        year +
+        "年" +
+        month +
+        "月" +
+        day +
+        "日" +
+        hour +
+        "时" +
+        min +
+        "分" +
+        sec +
+        "秒";
+      // 同时需要拍照
+      // 获取当前的insert 数目
+      this.setGpioPhoto(time);
+    } else {
+      this.setGpioPhoto();
+    }
+  }
+  setRpioModel(dataArray) {
+    const bitType = dataArray.substring(9, 10);
+    let type1 = "";
+    switch (bitType) {
+      case "A":
+        type1 = "P";
+        break;
+      case "1":
+        type1 = "AUTO";
+        break;
+      case "2":
+        type1 = "TV";
+        break;
+      case "7":
+        type1 = "AV";
+        break;
+    }
+    this.initModel(type1);
+  }
+  // photo: 37, // 手动拍照
+  setRpioPhoto() {}
+  //   menuOn: 7, // 菜单打开
+  setRpioMenuOnOrOff() {
+    const str = 7;
+    rpio.write(str, 1);
+    rpio.msleep(100);
+    // rpio.write(str, rpio.LOW);
+    rpio.write(str, 0);
+  }
+  //   menuOff: 7, // 菜单关闭
+  //   menuUp: 13, // 菜单上翻
+  setRpioMenuUp() {
+    const str = 13;
+    rpio.write(str, 1);
+    rpio.msleep(100);
+    // rpio.write(str, rpio.LOW);
+    rpio.write(str, 0);
+  }
+  //   menuDown: 31, // 菜单下翻
+  setRpioMenuDown() {
+    const str = 31;
+    rpio.write(str, 1);
+    rpio.msleep(100);
+    // rpio.write(str, rpio.LOW);
+    rpio.write(str, 0);
+  }
+  //   menuLeft: 29, // 菜单左翻
+  setRpioMenuLeft() {
+    const str = 29;
+    rpio.write(str, 1);
+    rpio.msleep(100);
+    // rpio.write(str, rpio.LOW);
+    rpio.write(str, 0);
+  }
+  setRpioMenuRight() {
+    const str = 11;
+    rpio.write(str, 1);
+    rpio.msleep(100);
+    // rpio.write(str, rpio.LOW);
+    rpio.write(str, 0);
+  }
+  //   menuRight: 11, // 菜单右翻
+  setRpioMenuUp() {
+    const str = 13;
+    rpio.write(str, 1);
+    rpio.msleep(100);
+    // rpio.write(str, rpio.LOW);
+    rpio.write(str, 0);
+  }
+  //   menuOk: 15, // 菜单确定
+  setRpioMenuOk() {
+    const str = 15;
+    rpio.write(str, 1);
+    rpio.msleep(100);
+    // rpio.write(str, rpio.LOW);
+    rpio.write(str, 0);
+  }
+
+  // 设置开机或者关机
+  setRpioOnOrOff() {
+    const str = 35;
+    rpio.write(str, 1);
+    rpio.msleep(500); //rpio.msleep(100);
+    // rpio.write(str, rpio.LOW);
+    rpio.write(str, 0);
+  }
+  openSerialPortByPort() {
+    // 设置端口的程序
+    const portName = "/dev/ttyAMA0"; // 默认为打开的串口
+    // 设置属性
+    const serialPort = new SerialPort(
+      portName,
+      {
+        baudRate: 9600,
+        dataBits: 8,
+        parity: "none",
+        stopBits: 1,
+        flowControl: false,
+        autoOpen: false,
+      },
+      false
+    );
+    return serialPort;
+  }
+  // 获取当前的文件内容
+  getFileJsonByFileName(file) {
+    let fileData = fs.readFileSync(file);
+    // 将这个数据json化
+    let jsonData = JSON.parse(fileData);
+    const type = jsonData["workType"];
+    // 根据这个来初始化模式数据
+    this.initModel(type);
+    if (jsonData["isSetTime"] == 1) {
+      // 表示为定时服务 那么就需要将以下这个函数
+      let time = 0;
+      //计算time 的时间
+      switch (jsonData["unit"]) {
+        case "s":
+          time = parseInt(jsonData["defineTime"] * 1000);
+          break;
+        case "m":
+          time = parseInt(jsonData["defineTime"] * 1000 * 60);
+          break;
+        case "h":
+          time = parseInt(jsonData["defineTime"] * 1000 * 60 * 60);
+          break;
+      }
+      this.setTimeIntervalByType("photo", file, jsonData, 37, time);
+    }
+    return jsonData;
+  }
+  // 自动开机
+  autoStartOn() {
+    const str = 35;
+    rpio.write(str, 1);
+    rpio.msleep(500);
+    rpio.write(str, 0);
+  }
+  initGPIOStatus() {
+    const GPIOList = [
+      35,
+      37,
+      7,
+      13,
+      31,
+      29,
+      11,
+      15,
+      32,
+      33,
+      22,
+      12,
+      36,
+      38,
+      40,
+    ];
+    // 初始化后直接赋予值
+    for (let i = 0; i < GPIOList.length; ++i) {
+      rpio.open(GPIOList[i], rpio.OUTPUT, rpio.LOW); // 先初始化为低电平
+      rpio.write(GPIOList[i], 0);
+    }
+  }
   // 获取所有的数据
   initDB(dbName) {
     db = new Datastore({ filename: dbName, autoload: true });
@@ -376,7 +622,7 @@ class HomeService extends Service {
 
   // 如果是定时任务 那么就需要处理这个
   setTimeIntervalByType(type, file, json, str, time) {
-    const { ctx } = this;
+    const { ctx, logger } = this;
     if (type === "photo") {
       json["isSetTime"] = 1; // 设置为定时拍照
       ctx.service.home.writeFileJson(file, json);
@@ -390,20 +636,11 @@ class HomeService extends Service {
         // 开始设置定时器的时间来设定
         // 开始设置100毫秒为低电平
         console.log("这个是定时拍照的程序 我这边先模拟在拍照即可");
-        rpio.write(str, rpio.HIGH);
-        // 设置为100ms
-        rpio.msleep(100);
-        rpio.write(str, rpio.LOW);
-        db.count({}, function (err, count) {
-          // count equals to 4
-          db.insert({
-            time: {},
-            index: count + 1,
-          });
-        });
+        this.setGpioPhoto();
       }, time);
     } else {
       // noPhoto
+      logger.info("取消程序成功");
       json["isSetTime"] = 0; // 设置为定时拍照
       ctx.service.home.writeFileJson(file, json);
       // 表示为取消定时拍照
