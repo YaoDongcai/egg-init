@@ -44,15 +44,18 @@ const commandCodeObj = {
 class HomeService extends Service {
   // 定时拍照设置
   setGpioPhotoInternalTime(dataArray, file, jsonData) {
-    const timeDate = dataArray.substring(9, 11); // 需要转为16进制的时间 否则不对
-    const unitTime = dataArray.substring(11, 13);
+    let timeDate = dataArray.substring(8, 10); // 需要转为16进制的时间 否则不对
+    const unitTime = dataArray.substring(10, 12);
     let isSetTime = false;
+    console.log("timeDate", timeDate);
     isSetTime = timeDate !== "00";
     if (isSetTime) {
       // 表示为定时服务 那么就需要将以下这个函数
       // 如果是定时 那么就需要设置这个函数了
       // 如果是定时拍照那么就要显示这个
       let time = 0;
+      timeDate = this.hex2int(timeDate);
+      console.log("timeDate2", timeDate);
       switch (unitTime) {
         case "01":
           time = parseInt(timeDate * 1000);
@@ -64,6 +67,7 @@ class HomeService extends Service {
           time = parseInt(timeDate * 1000 * 60 * 60);
           break;
       }
+      console.log("time", time);
       this.setTimeIntervalByType("photo", file, jsonData, 37, time);
     }
   }
@@ -74,7 +78,7 @@ class HomeService extends Service {
     // rpio.write(str, rpio.LOW);
     rpio.write(str, 0);
     // 同时需要写入数据库中
-    console.log("正在执行拍照的程序");
+    // console.log("正在执行拍照的程序");
     db.count({}, function (err, count) {
       // count equals to 4
       db.insert({
@@ -232,6 +236,7 @@ class HomeService extends Service {
   }
   // 获取当前的文件内容
   getFileJsonByFileName(file) {
+    const { logger } = this;
     let fileData = fs.readFileSync(file);
     // 将这个数据json化
     let jsonData = JSON.parse(fileData);
@@ -253,6 +258,8 @@ class HomeService extends Service {
           time = parseInt(jsonData["defineTime"] * 1000 * 60 * 60);
           break;
       }
+      // 打印出这个时间
+      logger.info("time", time);
       this.setTimeIntervalByType("photo", file, jsonData, 37, time);
     }
     return jsonData;
@@ -296,18 +303,38 @@ class HomeService extends Service {
     //   index: 1,
     // });
   }
+  clearDB() {
+    const { logger } = this;
+    logger.info("selectAll");
+    return new Promise((resolve, reject) => {
+      db.remove({}, { multi: true }, function (err, numRemoved) {
+        if (err) {
+          return reject(err);
+        }
+        resolve(numRemoved);
+      });
+    });
+  }
   selectAll() {
     // 返回所有的结果数据
     const { logger } = this;
     logger.info("selectAll");
     return new Promise((resolve, reject) => {
-      db.find({}, (err, docs) => {
-        logger.info("docs", docs);
-        if (err) {
-          return reject(err);
-        }
-        resolve(docs);
-      });
+      db.find({})
+        .sort({ postedAt: -1 })
+        .exec((err, docs) => {
+          if (err) {
+            return reject(err);
+          }
+          resolve(docs);
+        });
+      //   db.find({}, (err, docs) => {
+      //     logger.info("docs", docs);
+      //     if (err) {
+      //       return reject(err);
+      //     }
+      //     resolve(docs);
+      //   });
     });
   }
   handleGPIOByType(type1, time = "") {
@@ -635,7 +662,7 @@ class HomeService extends Service {
       timePhotoHandle = setInterval(async () => {
         // 开始设置定时器的时间来设定
         // 开始设置100毫秒为低电平
-        console.log("这个是定时拍照的程序 我这边先模拟在拍照即可");
+        // console.log("这个是定时拍照的程序 我这边先模拟在拍照即可");
         this.setGpioPhoto();
       }, time);
     } else {

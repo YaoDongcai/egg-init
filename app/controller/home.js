@@ -95,6 +95,17 @@ const commandCodeObj = {
   mixinModel: "AA7555020b0083",
 };
 class HomeController extends Controller {
+  async clearDB() {
+    const { ctx } = this;
+    const findAllResult = await ctx.service.home.clearDB();
+    // 找到所有的数据
+    // 这个时候开始返回给前台即可
+    ctx.body = {
+      status: 1,
+      data: findAllResult,
+    };
+    ctx.status = 200;
+  }
   async index() {
     const { ctx } = this;
     await ctx.render("index.html");

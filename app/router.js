@@ -7,6 +7,7 @@ module.exports = (app) => {
   const { router, controller } = app;
   // 设置树莓派的页面
   router.get("/", controller.home.index);
+  router.get("/respberry/clearDB", controller.home.clearDB);
   // 获取当前的LED灯的状态
   router.get("/respberry/P36Status", controller.home.status);
   router.get("/respberry/getIP", controller.home.getCurrentIP);

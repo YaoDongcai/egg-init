@@ -51,7 +51,7 @@ const commandCodeObj = {
   tvModel: "AA75550207008F",
   audioModel: "AA755502080080",
   c2Model: "AA755502090081",
-  pModel: "AA7555020a0082",
+  pModel: "AA7555020A0082",
   mixinModel: "AA7555020b0083",
 };
 class AppBootHook {
@@ -98,6 +98,7 @@ class AppBootHook {
       // 开始判断校验位是否正确
       //  for (let i = 0; i <= dataArray.length; ++i) {}
       // logger.info(dataArray);
+      console.log("data", dataArray);
       const codeType = dataArray.substring(4, 6);
       switch (codeType + "") {
         case "11":
