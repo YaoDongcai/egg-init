@@ -1,6 +1,5 @@
 const Subscription = require("egg").Subscription;
 const rpio = require("rpio"); // 控制GPIO的脚口子
-const rpio = "";
 class UpdateFlash extends Subscription {
   // 通过 schedule 属性来设置定时任务的执行间隔等配置
   static get schedule() {
@@ -21,7 +20,7 @@ class UpdateFlash extends Subscription {
     // 开始执行闪光灯的设置
     const str = 33;
     rpio.write(str, 1);
-    rpio.msleep(1000); // 执行一秒后开始执行这个操作
+    rpio.msleep(3000); // 执行一秒后开始执行这个操作
     rpio.write(str, 0);
   }
 }

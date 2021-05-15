@@ -59,6 +59,7 @@ class AppBootHook {
     this.app = app;
     // 需要在这里设置一个变量 如果这个变量最大为50
     app.maxFocusLimit = 0;
+    app.versionType = "1";
     app.on("request", (ctx) => {
       // 监听这个里面的所有请求是否都经过这个
       app.maxFocusLimit = 0;

@@ -123,12 +123,15 @@ class HomeController extends Controller {
     ctx.status = 200;
   }
   async initGPIOController() {
-    const { ctx, logger } = this;
+    const { ctx, logger, app } = this;
     const body = ctx.request.body;
     // 默认打开串口来可以通信识别
 
     const dateYMD = body.dateYMD;
     const dateHMS = body.dateHMS;
+    const versionType = body.versionType;
+    // 增加一个全局的变量来设置这个
+    app.versionType = versionType;
     // 强制设置系统时间
     ctx.service.home.setDate(dateYMD, dateHMS);
     // 设置串口打开
@@ -227,7 +230,12 @@ class HomeController extends Controller {
     const body = ctx.request.body;
     const type = body.send;
     // G5X的模型
-    ctx.service.home.initG5XModel(type);
+    console.log("this.app", this.app.versionType);
+    if (this.app.versionType == "1") {
+      ctx.service.home.initModel(type);
+    } else {
+      ctx.service.home.initG5XModel(type);
+    }
     // ctx.service.home.initModel(type);
     const dirname = ctx.app.baseDir;
     // 开始写入这个模态

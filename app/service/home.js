@@ -56,25 +56,29 @@ class HomeService extends Service {
       let time = 0;
       timeDate = this.hex2int(timeDate);
       console.log("timeDate2", timeDate);
+      jsonData["defineTime"] = timeDate;
       switch (unitTime) {
-        case "01":
+        case "01": // 表示为s
+          jsonData["unit"] = "s";
           time = parseInt(timeDate * 1000);
           break;
-        case "02":
+        case "02": // 表示为分
+          jsonData["unit"] = "m";
           time = parseInt(timeDate * 1000 * 60);
           break;
-        case "03":
+        case "03": // 表示为时
+          jsonData["unit"] = "h";
           time = parseInt(timeDate * 1000 * 60 * 60);
           break;
       }
-      console.log("time", time);
+
       this.setTimeIntervalByType("photo", file, jsonData, 37, time);
     }
   }
   setGpioPhoto(time = "") {
     const str = 37;
     rpio.write(str, 1);
-    rpio.msleep(100);
+    rpio.msleep(150);
     // rpio.write(str, rpio.LOW);
     rpio.write(str, 0);
     // 同时需要写入数据库中
@@ -131,6 +135,7 @@ class HomeService extends Service {
     }
   }
   setRpioModel(dataArray) {
+    const { ctx } = this;
     const bitType = dataArray.substring(9, 10);
     let type1 = "";
     switch (bitType) {
@@ -147,7 +152,17 @@ class HomeService extends Service {
         type1 = "AV";
         break;
     }
-    this.initModel(type1);
+    const dirname = ctx.app.baseDir;
+    // 开始写入这个模态
+    var file = path.join(dirname, "client.config.json");
+    let json = this.readFileJson(file);
+    json["workType"] = type1;
+    this.writeFileJson(file, json);
+    if (this.app.versionType == "1") {
+      this.initModel(type1);
+    } else {
+      this.initG5XModel(type1);
+    }
   }
   // photo: 37, // 手动拍照
   setRpioPhoto() {}
@@ -242,7 +257,11 @@ class HomeService extends Service {
     let jsonData = JSON.parse(fileData);
     const type = jsonData["workType"];
     // 根据这个来初始化模式数据
-    this.initModel(type);
+    if (this.app.globalVersionType == "1") {
+      this.initModel(type);
+    } else {
+      this.initG5XModel(type);
+    }
     if (jsonData["isSetTime"] == 1) {
       // 表示为定时服务 那么就需要将以下这个函数
       let time = 0;
@@ -444,171 +463,76 @@ class HomeService extends Service {
   // 初始化G5X的模式
   initG5XModel(type) {
     const { ctx, logger } = this;
-    //         case "1": // 0000
-    //     rpio.write(36, rpio.LOW);
-    //     rpio.write(38, rpio.LOW);
-    //     rpio.write(22, rpio.LOW);
-    //     rpio.write(40, rpio.LOW);
-    //     break;
-    //   case "2": // 0001
-    //     rpio.write(36, rpio.LOW);
-    //     rpio.write(38, rpio.LOW);
-    //     rpio.write(22, rpio.LOW);
-    //     rpio.write(40, rpio.HIGH);
-    //     break;
-    //   case "3": // 0010
-    //     rpio.write(36, rpio.LOW);
-    //     rpio.write(38, rpio.LOW);
-    //     rpio.write(22, rpio.HIGH);
-    //     rpio.write(40, rpio.LOW);
-    //     break;
-    //   case "4": // 0011
-    //     rpio.write(36, rpio.LOW);
-    //     rpio.write(38, rpio.LOW);
-    //     rpio.write(22, rpio.HIGH);
-    //     rpio.write(40, rpio.HIGH);
-    //     break;
-    //   case "5": // 0100
-    //     rpio.write(36, rpio.LOW);
-    //     rpio.write(38, rpio.HIGH);
-    //     rpio.write(22, rpio.LOW);
-    //     rpio.write(40, rpio.LOW);
-    //     break;
-    //   case "6": // 0101
-    //     rpio.write(36, rpio.LOW);
-    //     rpio.write(38, rpio.HIGH);
-    //     rpio.write(22, rpio.LOW);
-    //     rpio.write(40, rpio.HIGH);
-    //     break;
-    //   case "7": // 0110
-    //     rpio.write(36, rpio.LOW);
-    //     rpio.write(38, rpio.HIGH);
-    //     rpio.write(22, rpio.HIGH);
-    //     rpio.write(40, rpio.LOW);
-    //     break;
-    //   case "8": // 0111
-    //     rpio.write(36, rpio.LOW);
-    //     rpio.write(38, rpio.HIGH);
-    //     rpio.write(22, rpio.HIGH);
-    //     rpio.write(40, rpio.HIGH);
-    //     break;
-    //   case "9": // 1000
-    //     rpio.write(36, rpio.HIGH);
-    //     rpio.write(38, rpio.LOW);
-    //     rpio.write(22, rpio.LOW);
-    //     rpio.write(40, rpio.LOW);
-    //     break;
-    //   case "10": // 1001
-    //     rpio.write(36, rpio.HIGH);
-    //     rpio.write(38, rpio.LOW);
-    //     rpio.write(22, rpio.LOW);
-    //     rpio.write(40, rpio.HIGH);
-    //     break;
-    //   case "11": // 1010
-    //     rpio.write(36, rpio.HIGH);
-    //     rpio.write(38, rpio.LOW);
-    //     rpio.write(22, rpio.HIGH);
-    //     rpio.write(40, rpio.LOW);
-    //     break;
-    //   case "12": // 1011
-    //     rpio.write(36, rpio.HIGH);
-    //     rpio.write(38, rpio.LOW);
-    //     rpio.write(22, rpio.HIGH);
-    //     rpio.write(40, rpio.HIGH);
-    //     break;
-    //   case "13": // 1100
-    //     rpio.write(36, rpio.HIGH);
-    //     rpio.write(38, rpio.HIGH);
-    //     rpio.write(22, rpio.LOW);
-    //     rpio.write(40, rpio.LOW);
-    //     break;
-    //   case "14": // 1101
-    //     rpio.write(36, rpio.HIGH);
-    //     rpio.write(38, rpio.HIGH);
-    //     rpio.write(22, rpio.LOW);
-    //     rpio.write(40, rpio.HIGH);
-    //     break;
-    //   case "15": // 1110
-    //     rpio.write(36, rpio.HIGH);
-    //     rpio.write(38, rpio.HIGH);
-    //     rpio.write(22, rpio.HIGH);
-    //     rpio.write(40, rpio.LOW);
-    //     break;
-    //   case "16": // 1111
-    //     rpio.write(36, rpio.HIGH);
-    //     rpio.write(38, rpio.HIGH);
-    //     rpio.write(22, rpio.HIGH);
-    //     rpio.write(40, rpio.HIGH);
-    //     break;
     switch (type) {
       // 36 38 40 22
-      case "P":
-        // p模式
-        rpio.write(36, rpio.LOW);
-        rpio.write(38, rpio.LOW);
-        rpio.write(40, rpio.LOW);
-        break;
-      case "AV":
-        rpio.write(36, rpio.HIGH);
-        rpio.write(38, rpio.HIGH);
-        rpio.write(40, rpio.LOW);
-        break;
-      case "TV":
-        rpio.write(36, rpio.LOW);
-        rpio.write(38, rpio.HIGH);
-        rpio.write(40, rpio.LOW);
-        break;
-      case "AUTO":
-        rpio.write(36, rpio.HIGH);
-        rpio.write(38, rpio.HIGH);
-        rpio.write(40, rpio.HIGH);
-        break;
-      //   case "P": // P模式
-      //     rpio.write(36, rpio.HIGH);
-      //     rpio.write(38, rpio.HIGH);
-      //     rpio.write(22, rpio.LOW);
-      //     rpio.write(40, rpio.LOW);
-      //     logger.info("p");
-      //     break;
-      //   case "AV": // Av 模式
+      //   case "P":
+      //     // p模式
       //     rpio.write(36, rpio.LOW);
-      //     rpio.write(38, rpio.HIGH);
-      //     rpio.write(22, rpio.LOW);
-      //     rpio.write(40, rpio.HIGH);
-      //     logger.info("AV");
-      //     break;
-      //   case "TV": // Tv 模式
-      //     rpio.write(36, rpio.HIGH);
-      //     rpio.write(38, rpio.HIGH);
-      //     rpio.write(22, rpio.LOW);
-      //     rpio.write(40, rpio.HIGH);
-      //     logger.info("TV");
-      //     break;
-      //   case "AUTO": // 自动模式
-      //     rpio.write(36, rpio.HIGH);
-      //     rpio.write(38, rpio.HIGH);
-      //     rpio.write(22, rpio.HIGH);
-      //     rpio.write(40, rpio.LOW);
-      //     logger.info("AUTO");
-      //     break;
-      //   case "MIX": // 混合模式
-      //     rpio.write(36, rpio.LOW);
-      //     rpio.write(38, rpio.HIGH);
-      //     rpio.write(22, rpio.LOW);
-      //     rpio.write(40, rpio.LOW);
-      //     logger.info("MIX");
-      //     break;
-      //   case "VIDEO": // 摄像模式
-      //     rpio.write(36, rpio.HIGH);
       //     rpio.write(38, rpio.LOW);
-      //     rpio.write(22, rpio.HIGH);
-      //     rpio.write(40, rpio.HIGH);
-      //     logger.info("VIDEO");
+      //     rpio.write(40, rpio.LOW);
       //     break;
+      //   case "AV":
+      //     rpio.write(36, rpio.HIGH);
+      //     rpio.write(38, rpio.HIGH);
+      //     rpio.write(40, rpio.LOW);
+      //     break;
+      //   case "TV":
+      //     rpio.write(36, rpio.LOW);
+      //     rpio.write(38, rpio.HIGH);
+      //     rpio.write(40, rpio.LOW);
+      //     break;
+      //   case "AUTO":
+      //     rpio.write(36, rpio.HIGH);
+      //     rpio.write(38, rpio.HIGH);
+      //     rpio.write(40, rpio.HIGH);
+      //     break;
+      case "P": // P模式
+        rpio.write(36, rpio.HIGH);
+        rpio.write(38, rpio.HIGH);
+        rpio.write(22, rpio.LOW);
+        rpio.write(40, rpio.LOW);
+        logger.info("p");
+        break;
+      case "AV": // Av 模式
+        rpio.write(36, rpio.LOW);
+        rpio.write(38, rpio.HIGH);
+        rpio.write(22, rpio.LOW);
+        rpio.write(40, rpio.HIGH);
+        logger.info("AV");
+        break;
+      case "TV": // Tv 模式
+        rpio.write(36, rpio.HIGH);
+        rpio.write(38, rpio.HIGH);
+        rpio.write(22, rpio.LOW);
+        rpio.write(40, rpio.HIGH);
+        logger.info("TV");
+        break;
+      case "AUTO": // 自动模式
+        rpio.write(36, rpio.HIGH);
+        rpio.write(38, rpio.HIGH);
+        rpio.write(22, rpio.HIGH);
+        rpio.write(40, rpio.LOW);
+        logger.info("AUTO");
+        break;
+      case "MIX": // 混合模式
+        rpio.write(36, rpio.LOW);
+        rpio.write(38, rpio.HIGH);
+        rpio.write(22, rpio.LOW);
+        rpio.write(40, rpio.LOW);
+        logger.info("MIX");
+        break;
+      case "VIDEO": // 摄像模式
+        rpio.write(36, rpio.HIGH);
+        rpio.write(38, rpio.LOW);
+        rpio.write(22, rpio.HIGH);
+        rpio.write(40, rpio.HIGH);
+        logger.info("VIDEO");
+        break;
     }
   }
   // 开始设置模式选择
   initModel(type) {
+    console.log("this.app", this.app.versionType);
     switch (type) {
       case "P":
         // p模式
