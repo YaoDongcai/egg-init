@@ -257,7 +257,7 @@ class HomeService extends Service {
     let jsonData = JSON.parse(fileData);
     const type = jsonData["workType"];
     // 根据这个来初始化模式数据
-    if (this.app.globalVersionType == "1") {
+    if (this.app.versionType == "1") {
       this.initModel(type);
     } else {
       this.initG5XModel(type);
@@ -292,21 +292,7 @@ class HomeService extends Service {
   }
   initGPIOStatus() {
     const GPIOList = [
-      35,
-      37,
-      7,
-      13,
-      31,
-      29,
-      11,
-      15,
-      32,
-      33,
-      22,
-      12,
-      36,
-      38,
-      40,
+      35, 37, 7, 13, 31, 29, 11, 15, 32, 33, 22, 12, 36, 38, 40,
     ];
     // 初始化后直接赋予值
     for (let i = 0; i < GPIOList.length; ++i) {
