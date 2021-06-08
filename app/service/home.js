@@ -78,7 +78,9 @@ class HomeService extends Service {
   setGpioPhoto(time = "") {
     const str = 37;
     rpio.write(str, 1);
-    rpio.msleep(150);
+    // G5x为500ms G16300ms
+    rpio.msleep(300);
+    console.log("setGpioPhonto");
     // rpio.write(str, rpio.LOW);
     rpio.write(str, 0);
     // 同时需要写入数据库中

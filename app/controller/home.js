@@ -284,7 +284,9 @@ class HomeController extends Controller {
     logger.info("type", type);
 
     let str = commandCodeObj[type + ""];
-    if (type !== "downloadStart" && type !== "downloadEnd") {
+    if (type == "photo") {
+      ctx.service.home.setGpioPhoto();
+    } else if (type !== "downloadStart" && type !== "downloadEnd") {
       logger.info("str", str);
       // 先要打开这个口子
       logger.info("引脚 rpio.LOW", rpio.LOW, "引脚OUTPUT", rpio.OUTPUT);
@@ -299,7 +301,7 @@ class HomeController extends Controller {
         // 开机是500ms
         rpio.msleep(500);
       } else {
-        rpio.msleep(100);
+        rpio.msleep(150);
       }
       // rpio.write(str, rpio.LOW);
       rpio.write(str, 0);
