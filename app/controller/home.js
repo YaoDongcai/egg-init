@@ -131,7 +131,7 @@ class HomeController extends Controller {
     const dateHMS = body.dateHMS;
     const versionType = body.versionType;
     // 增加一个全局的变量来设置这个
-    app.versionType = versionType;
+    // app.versionType =  // versionType;
     // 强制设置系统时间
     ctx.service.home.setDate(dateYMD, dateHMS);
     // 设置串口打开

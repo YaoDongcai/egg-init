@@ -16,6 +16,16 @@ class UpdateFocus extends Subscription {
     // 开始执行对焦的功能
     ctx.app.maxFocusLimit += 1; // 通过设置30s的间隔
     if (ctx.app.maxFocusLimit > 30) {
+      // 如果是定时拍照 或者正在拍照 那么就不能点击了
+      if (ctx.app.isSetTime == "1") {
+        // 表示在定时中 那么就需要让这个数据返回即可
+        ctx.app.maxFocusLimit = 0;
+        return;
+      }
+      if (rpio.read(37) === rpio.HIGH) {
+        console.log("正在拍照中");
+        return;
+      }
       const str = 11;
       rpio.write(str, 1);
       rpio.msleep(50); // 如果是50ms 的操作就可以执行这个操作了 对焦的作用

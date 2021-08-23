@@ -1,3 +1,4 @@
+"use strict";
 const Service = require("egg").Service;
 const rpio = require("rpio");
 const child = require("child_process");
@@ -78,11 +79,20 @@ class HomeService extends Service {
   setGpioPhoto(time = "") {
     const str = 37;
     rpio.write(str, 1);
-    // G5x为500ms G16300ms
-    rpio.msleep(300);
-    console.log("setGpioPhonto");
-    // rpio.write(str, rpio.LOW);
+    // G5x为 500ms G16 300ms
+    rpio.msleep(2500);
     rpio.write(str, 0);
+    // for (let i = 0; i < 2; ++i) {
+    //   setTimeout(() => {
+    //     console.log("我要连续执行2次");
+    //     rpio.write(str, 1);
+    //     // G5x为 500ms G16 300ms
+    //     rpio.msleep(500);
+    //     rpio.write(str, 0);
+    //     rpio.msleep(250);
+    //   }, 100);
+    // }
+
     // 同时需要写入数据库中
     // console.log("正在执行拍照的程序");
     db.count({}, function (err, count) {
@@ -287,7 +297,7 @@ class HomeService extends Service {
   }
   // 自动开机
   autoStartOn() {
-    const str = 35;
+    let str = 35;
     rpio.write(str, 1);
     rpio.msleep(500);
     rpio.write(str, 0);
@@ -563,6 +573,7 @@ class HomeService extends Service {
   setTimeIntervalByType(type, file, json, str, time) {
     const { ctx, logger } = this;
     if (type === "photo") {
+      ctx.app.isSetTime = "1";
       json["isSetTime"] = 1; // 设置为定时拍照
       ctx.service.home.writeFileJson(file, json);
       // 这个时候需要判断时间
@@ -581,6 +592,8 @@ class HomeService extends Service {
       // noPhoto
       logger.info("取消程序成功");
       json["isSetTime"] = 0; // 设置为定时拍照
+      ctx.app.isSetTime = "0";
+      console.log("ctx.app.isSetTime home.js", ctx.app.isSetTime);
       ctx.service.home.writeFileJson(file, json);
       // 表示为取消定时拍照
       if (timePhotoHandle) {

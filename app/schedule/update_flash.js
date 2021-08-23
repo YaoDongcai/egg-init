@@ -13,15 +13,17 @@ class UpdateFlash extends Subscription {
   async subscribe() {
     const { ctx, logger } = this;
     // 如果当前正在拍照 那么就表示不能关闭闪光灯
-    if (rpio.read(37) === rpio.HIGH) {
-      console.log("正在拍照中");
-      return;
-    }
-    // 开始执行闪光灯的设置
-    const str = 33;
-    rpio.write(str, 1);
-    rpio.msleep(3000); // 执行一秒后开始执行这个操作
-    rpio.write(str, 0);
+    // 如果是G5X 那么就不能点击了
+    return;
+    // if (rpio.read(37) === rpio.HIGH) {
+    //   console.log("正在拍照中");
+    //   return;
+    // }
+    // // 开始执行闪光灯的设置
+    // const str = 33;
+    // rpio.write(str, 1);
+    // rpio.msleep(3000); // 执行一秒后开始执行这个操作
+    // rpio.write(str, 0);
   }
 }
 

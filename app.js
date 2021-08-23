@@ -1,3 +1,4 @@
+"use strict";
 const rpio = require("rpio"); // 控制GPIO的脚口子
 const path = require("path"); // 读取本地配置文件
 const fs = require("fs");
@@ -59,7 +60,8 @@ class AppBootHook {
     this.app = app;
     // 需要在这里设置一个变量 如果这个变量最大为50
     app.maxFocusLimit = 0;
-    app.versionType = "1";
+    app.versionType = "2"; // 表示为G5X
+    app.isSetTime = "0"; //  这个默认为初始化是没有被定时的
     app.on("request", (ctx) => {
       // 监听这个里面的所有请求是否都经过这个
       app.maxFocusLimit = 0;
@@ -91,6 +93,7 @@ class AppBootHook {
     const serialPort = ctx.service.home.openSerialPortByPort();
     // 打开这个端口
     const result = await serialPort.open();
+
     serialPort.on("data", async function (data) {
       // 对应的data 数据
       let dataArray = data.toString("hex");
@@ -151,6 +154,11 @@ class AppBootHook {
           ctx.service.home.setRpioMenuOk();
           break;
       }
+
+      // 如果是接受到 那么就需要发送对应的数据给前端即可
+      //   serialPort.write("AA", "hex", async function (data) {
+      //     // 接受到了数据
+      //   });
     });
     // 这样就可以调用ctx service 函数
   }
