@@ -52,4 +52,7 @@ module.exports = (app) => {
   );
   // 导出数据库的数据
   router.get("/respberry/exportData", controller.home.exportData);
+
+  // 设置电机的参数即可
+  router.post("/respberry/pwm", controller.home.setPWM);
 };

@@ -1,5 +1,5 @@
 "use strict";
-
+const Gpio = require("pigpio").Gpio;
 const Controller = require("egg").Controller;
 const SerialPort = require("serialport");
 const child = require("child_process");
@@ -663,6 +663,19 @@ class HomeController extends Controller {
   //  获取LED的状态
   async status() {
     const { ctx } = this;
+    ctx.body = {
+      status: 1,
+    };
+    ctx.status = 200;
+  }
+
+  async setPWM() {
+    const { ctx, logger } = this;
+    const body = ctx.request.body;
+    const count = body.count;
+    const pwm = new Gpio(18, Gpio.OUTPUT);
+    // 设置占空比即可
+    pwm.pwmWrite(count);
     ctx.body = {
       status: 1,
     };

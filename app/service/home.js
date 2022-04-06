@@ -1,6 +1,8 @@
 "use strict";
 const Service = require("egg").Service;
 const rpio = require("rpio");
+const Gpio = require("pigpio").Gpio;
+
 const child = require("child_process");
 var Datastore = require("nedb");
 const path = require("path");
@@ -311,6 +313,13 @@ class HomeService extends Service {
       rpio.open(GPIOList[i], rpio.OUTPUT, rpio.LOW); // 先初始化为低电平
       rpio.write(GPIOList[i], 0);
     }
+    // 开始初始化GPIO的 12引脚 对应为GPIO18即可
+    const pwm = new Gpio(18, Gpio.OUTPUT);
+    let dutyCycle = 0;
+    // 这个是第一次开始初始化数据即可
+    pwm.setPwmFrequency(50); // 设置为50hz
+    pwm.setPwmRange(20); // 设置为20等分
+    pwm.pwmWrite(dutyCycle);
   }
   // 获取所有的数据
   initDB(dbName) {
