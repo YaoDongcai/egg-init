@@ -673,8 +673,11 @@ class HomeController extends Controller {
     const { ctx, logger } = this;
     const body = ctx.request.body;
     const count = body.count;
-    const pwm = new Gpio(18, Gpio.OUTPUT);
+    const port = body.port;
+    // 获取pwm的数据 然后outPut
+    const pwm = new Gpio(port, Gpio.OUTPUT);
     // 设置占空比即可
+    logger.info("count", count, "port", port);
     pwm.pwmWrite(count);
     ctx.body = {
       status: 1,

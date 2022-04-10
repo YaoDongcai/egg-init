@@ -314,12 +314,37 @@ class HomeService extends Service {
       rpio.write(GPIOList[i], 0);
     }
     // 开始初始化GPIO的 12引脚 对应为GPIO18即可
-    const pwm = new Gpio(18, Gpio.OUTPUT);
-    let dutyCycle = 0;
+    const pwm0 = new Gpio(18, Gpio.OUTPUT);
+    const pwm1 = new Gpio(12, Gpio.OUTPUT);
+    const pwm2 = new Gpio(13, Gpio.OUTPUT);
+    const pwm3 = new Gpio(19, Gpio.OUTPUT);
+    const pwm4 = new Gpio(20, Gpio.OUTPUT);
+    const pwm5 = new Gpio(26, Gpio.OUTPUT);
+    let dutyCycle = 150 * 2;
     // 这个是第一次开始初始化数据即可
-    pwm.pwmFrequency(50); // 设置为50hz
-    pwm.pwmRange(200); // 设置为20等分
-    pwm.pwmWrite(dutyCycle);
+    pwm0.pwmFrequency(50); // 设置为50hz
+    pwm0.pwmRange(4000); // 设置为20等分
+    pwm0.pwmWrite(dutyCycle);
+
+    pwm1.pwmFrequency(50); // 设置为50hz
+    pwm1.pwmRange(4000); // 设置为20等分
+    pwm1.pwmWrite(dutyCycle);
+
+    pwm2.pwmFrequency(50); // 设置为50hz
+    pwm2.pwmRange(4000); // 设置为20等分
+    pwm2.pwmWrite(dutyCycle);
+
+    pwm3.pwmFrequency(50); // 设置为50hz
+    pwm3.pwmRange(4000); // 设置为20等分
+    pwm3.pwmWrite(dutyCycle);
+
+    pwm4.pwmFrequency(50); // 设置为50hz
+    pwm4.pwmRange(4000); // 设置为20等分
+    pwm4.pwmWrite(dutyCycle);
+
+    pwm5.pwmFrequency(50); // 设置为50hz
+    pwm5.pwmRange(4000); // 设置为20等分
+    pwm5.pwmWrite(dutyCycle);
   }
   // 获取所有的数据
   initDB(dbName) {
