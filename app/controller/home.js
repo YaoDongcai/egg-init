@@ -225,6 +225,24 @@ class HomeController extends Controller {
     };
     ctx.status = 200;
   }
+
+  async setFileByAutoFocus() {
+    const { ctx, logger } = this;
+    const body = ctx.request.body;
+    const type = body.send;
+
+    // ctx.service.home.initModel(type);
+    const dirname = ctx.app.baseDir;
+    // 开始写入这个模态
+    var file = path.join(dirname, "client.config.json");
+    let json = ctx.service.home.readFileJson(file);
+    json["autoFocus"] = type;
+    ctx.service.home.writeFileJson(file, json);
+    ctx.body = {
+      status: 1,
+    };
+    ctx.status = 200;
+  }
   async GPIOControllerByModel() {
     const { ctx, logger } = this;
     const body = ctx.request.body;
@@ -278,7 +296,7 @@ class HomeController extends Controller {
   // 第二版的数据获取 GPIO 的控制
   async GPIOController() {
     // 获取前端那边的命令
-    const { ctx, logger } = this;
+    const { ctx, logger, app } = this;
     const body = ctx.request.body;
     const type = body.send;
     logger.info("type", type);
@@ -300,6 +318,22 @@ class HomeController extends Controller {
       if (type == "on" || type == "off") {
         // 开机是500ms
         rpio.msleep(500);
+        // 如果是on 那么就再需要判断是否为开启变焦即可
+        if (type == "on") {
+          // 获取即可
+          // 获取当前的文件配置信息
+          // 同步写法
+          const jsonData = ctx.service.home.getFileJsonByFileName(
+            app.configFilePath
+          );
+          const autoFocus = jsonData["autoFocus"];
+
+          if (autoFocus == 1) {
+            setTimeout(() => {
+              ctx.service.home.autoFocusOn();
+            }, 3000);
+          }
+        }
       } else {
         rpio.msleep(150);
       }

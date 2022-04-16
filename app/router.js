@@ -55,4 +55,9 @@ module.exports = (app) => {
 
   // 设置电机的参数即可
   router.post("/respberry/pwm", controller.home.setPWM);
+  // 设置是否开机自启动变焦模式
+  router.post(
+    "/respberry/setFileByAutoFocus",
+    controller.home.setFileByAutoFocus
+  );
 };

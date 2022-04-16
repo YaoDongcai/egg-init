@@ -1,6 +1,1 @@
-{
-    "workType": "P",
-    "isSetTime": 1,
-    "defineTime": 10,
-    "unit": "s"
-}
+{"workType":"TV","isSetTime":0,"defineTime":7,"unit":"s","autoFocus":1}

@@ -79,9 +79,12 @@ class AppBootHook {
     ctx.service.home.initGPIOStatus();
     // 自动开机
     ctx.service.home.autoStartOn();
+
     // 开始读取本地配置文件 读取数据操作
     var file = path.join(__dirname, "client.config.json");
     // 获取当前的文件配置信息
+    this.app.configFilePath = file;
+    console.log("this.app", this.app.configFilePath);
     // 同步写法
     const jsonData = ctx.service.home.getFileJsonByFileName(file);
     // 读取配置后需要将对应的数据设置为这个模式
@@ -93,7 +96,12 @@ class AppBootHook {
     const serialPort = ctx.service.home.openSerialPortByPort();
     // 打开这个端口
     const result = await serialPort.open();
-
+    const autoFocus = jsonData["autoFocus"];
+    if (autoFocus == 1) {
+      setTimeout(() => {
+        ctx.service.home.autoFocusOn();
+      }, 3000);
+    }
     serialPort.on("data", async function (data) {
       // 对应的data 数据
       let dataArray = data.toString("hex");
@@ -152,6 +160,16 @@ class AppBootHook {
           break;
         case "DD":
           ctx.service.home.setRpioMenuOk();
+          break;
+        case "2E":
+          // 如果是2e 表示是收到相机的状态查询 需要返回这个状态即可
+
+          const initStatus = ctx.service.home.getInitStatus(jsonData);
+          // 这个时候port 直接返回即可
+          serialPort.write(initStatus, "hex", async function (data) {
+            // 返回数据即可
+            console.log("initStatus", initStatus);
+          });
           break;
       }
 

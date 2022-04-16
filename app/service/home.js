@@ -263,6 +263,71 @@ class HomeService extends Service {
     );
     return serialPort;
   }
+  getInitStatus(jsonData) {
+    // 01手动 02自动
+    let str = "AA752E04";
+    const isSetTime = jsonData["isSetTime"];
+    if (isSetTime == 0) {
+      // 如果是手动那么间隔数目就是00
+      str += "010000";
+    } else {
+      str += "02";
+
+      const unit = jsonData["unit"];
+      switch (unit) {
+        case "s": // 表示为s
+          str += "01";
+          break;
+        case "m": // 表示为分
+          str += "02";
+          break;
+        case "h": // 表示为时
+          str += "03";
+          break;
+      }
+
+      const defineTime = jsonData["defineTime"];
+
+      const hexUp = parseInt(defineTime + "")
+        .toString(16)
+        .toUpperCase()
+        .padStart(2, "0");
+      str += hexUp; // 转换为16进制即可
+    }
+    // 工作模式 传递的jsonData 然后解析给用户即可
+    const workType = jsonData["workType"];
+
+    switch (workType) {
+      case "P":
+        str += "0A";
+        break;
+      case "AUTO":
+        str += "01";
+        break;
+      case "TV":
+        str += "07";
+        break;
+      case "AV":
+        str += "02";
+        break;
+    }
+    // 逆向编译即可
+    // 需要计算
+    const BCC = this.setHexArrayToBCC(str);
+    const hexBCC = parseInt(BCC).toString(16).toUpperCase();
+    str += hexBCC;
+
+    return str;
+  }
+  setHexArrayToBCC(dataView) {
+    let checksum = 0x00;
+    for (let i = 0; i < dataView.length; i += 2) {
+      const int8Num = parseInt(dataView[i] + "" + dataView[i + 1], 16);
+      checksum ^= int8Num;
+    }
+
+    return checksum;
+  }
   // 获取当前的文件内容
   getFileJsonByFileName(file) {
     const { logger } = this;
@@ -303,6 +368,23 @@ class HomeService extends Service {
     rpio.write(str, 1);
     rpio.msleep(500);
     rpio.write(str, 0);
+  }
+  // 自动聚焦 就是原先设置录像的三次录像的命令即可
+  autoFocusOn(str = 12) {
+    const { logger } = this;
+    let count = 0;
+    let timeHandle = setInterval(() => {
+      rpio.write(str, 1);
+      rpio.msleep(150);
+      // rpio.write(str, rpio.LOW);
+      rpio.write(str, 0);
+      count++;
+      logger.info("count", count);
+      if (count == 3) {
+        clearInterval(timeHandle);
+        timeHandle = null;
+      }
+    }, 500);
   }
   initGPIOStatus() {
     const GPIOList = [
